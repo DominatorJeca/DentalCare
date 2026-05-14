@@ -54,19 +54,47 @@ export default function CitasPage() {
     notes: "",
   })
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const selectedService = services.find((s) => s.id === formData.service)
   const selectedDoctor = doctors.find((d) => d.id === formData.doctor)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would normally send the data to your backend
-    console.log("Appointment submitted:", {
-      ...formData,
-      date,
-      time: selectedTime,
-    })
-    setIsSubmitted(true)
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch("/api/appointments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          patientName: formData.name,
+          patientEmail: formData.email,
+          patientPhone: formData.phone,
+          service: selectedService?.name,
+          doctor: selectedDoctor?.name,
+          appointmentDate: date?.toISOString().split("T")[0],
+          appointmentTime: selectedTime,
+          notes: formData.notes,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error al agendar la cita")
+      }
+
+      setIsSubmitted(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al agendar la cita")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const canProceedToStep2 = formData.service && formData.doctor
@@ -390,21 +418,28 @@ export default function CitasPage() {
                     />
                   </div>
 
+                  {error && (
+                    <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                      {error}
+                    </div>
+                  )}
+
                   <div className="flex gap-3">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => setStep(2)}
                       className="flex-1"
+                      disabled={isLoading}
                     >
                       Atrás
                     </Button>
                     <Button
                       type="submit"
-                      disabled={!canSubmit}
+                      disabled={!canSubmit || isLoading}
                       className="flex-1"
                     >
-                      Confirmar Cita
+                      {isLoading ? "Agendando..." : "Confirmar Cita"}
                     </Button>
                   </div>
                 </form>
