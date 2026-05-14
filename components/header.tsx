@@ -10,10 +10,10 @@ export function Header() {
 
   const navItems = [
     { href: "/", label: "Inicio" },
-    { href: "#servicios", label: "Servicios" },
-    { href: "#equipo", label: "Equipo" },
-    { href: "#testimonios", label: "Testimonios" },
-    { href: "#contacto", label: "Contacto" },
+    { href: "/#servicios", label: "Servicios" },
+    { href: "/#equipo", label: "Equipo" },
+    { href: "/#testimonios", label: "Testimonios" },
+    { href: "/#contacto", label: "Contacto" },
   ]
 
   return (
