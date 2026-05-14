@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { Resend } from "resend"
 import { NextResponse } from "next/server"
 
+
 export async function POST(request: Request) {
   try {
     const resend = new Resend(process.env.RESEND_API_KEY)
