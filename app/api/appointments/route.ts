@@ -27,6 +27,23 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
 
+    // Verificar que no exista una cita con el mismo doctor, fecha y hora
+    const { data: existing } = await supabase
+      .from("appointments")
+      .select("id")
+      .eq("doctor", doctor)
+      .eq("appointment_date", appointmentDate)
+      .eq("appointment_time", appointmentTime)
+      .not("status", "eq", "cancelada")
+      .maybeSingle()
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "Este horario ya no está disponible. Por favor seleccione otra hora." },
+        { status: 409 }
+      )
+    }
+
     // Insertar la cita en la base de datos
     const { data: appointment, error: dbError } = await supabase
       .from("appointments")
