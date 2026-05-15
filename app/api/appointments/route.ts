@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server"
 import { Resend } from "resend"
 import { NextResponse } from "next/server"
 
-
 export async function POST(request: Request) {
   try {
     const resend = new Resend(process.env.RESEND_API_KEY)
@@ -11,15 +10,14 @@ export async function POST(request: Request) {
       patientName,
       patientEmail,
       patientPhone,
-      service,
-      doctor,
+      serviceId,
+      doctorId,
       appointmentDate,
       appointmentTime,
       notes,
     } = body
 
-    // Validar campos requeridos
-    if (!patientName || !patientEmail || !patientPhone || !service || !doctor || !appointmentDate || !appointmentTime) {
+    if (!patientName || !patientEmail || !patientPhone || !serviceId || !doctorId || !appointmentDate || !appointmentTime) {
       return NextResponse.json(
         { error: "Todos los campos son requeridos" },
         { status: 400 }
@@ -28,11 +26,39 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
 
-    // Verificar que no exista una cita con el mismo doctor, fecha y hora
+    // Validar que el doctor realiza ese servicio
+    const { data: doctorService } = await supabase
+      .from("doctor_services")
+      .select("doctor_id")
+      .eq("doctor_id", doctorId)
+      .eq("service_id", serviceId)
+      .maybeSingle()
+
+    if (!doctorService) {
+      return NextResponse.json(
+        { error: "El doctor seleccionado no realiza este servicio" },
+        { status: 400 }
+      )
+    }
+
+    // Obtener nombres y duración para el correo y la validación
+    const [{ data: doctor }, { data: service }] = await Promise.all([
+      supabase.from("doctors").select("name").eq("id", doctorId).single(),
+      supabase.from("services").select("name, duration_minutes").eq("id", serviceId).single(),
+    ])
+
+    if (!doctor || !service) {
+      return NextResponse.json(
+        { error: "Doctor o servicio no encontrado" },
+        { status: 404 }
+      )
+    }
+
+    // Verificar conflicto de horario (mismo doctor, fecha y hora)
     const { data: existing } = await supabase
       .from("appointments")
       .select("id")
-      .eq("doctor", doctor)
+      .eq("doctor_id", doctorId)
       .eq("appointment_date", appointmentDate)
       .eq("appointment_time", appointmentTime)
       .not("status", "eq", "cancelada")
@@ -45,15 +71,15 @@ export async function POST(request: Request) {
       )
     }
 
-    // Insertar la cita en la base de datos
+    // Insertar la cita
     const { data: appointment, error: dbError } = await supabase
       .from("appointments")
       .insert({
         patient_name: patientName,
         patient_email: patientEmail,
         patient_phone: patientPhone,
-        service: service,
-        doctor: doctor,
+        service_id: serviceId,
+        doctor_id: doctorId,
         appointment_date: appointmentDate,
         appointment_time: appointmentTime,
         notes: notes || null,
@@ -70,7 +96,6 @@ export async function POST(request: Request) {
       )
     }
 
-    // Formatear la fecha para el correo
     const formattedDate = new Date(appointmentDate).toLocaleDateString("es-ES", {
       weekday: "long",
       year: "numeric",
@@ -78,7 +103,6 @@ export async function POST(request: Request) {
       day: "numeric",
     })
 
-    // Enviar correo de confirmación
     try {
       await resend.emails.send({
         from: "DentaCare <onboarding@resend.dev>",
@@ -96,23 +120,19 @@ export async function POST(request: Request) {
               <h1 style="color: white; margin: 0; font-size: 28px;">DentaCare</h1>
               <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Servicios Dentales de Excelencia</p>
             </div>
-            
             <div style="background: #f8fafc; padding: 30px; border: 1px solid #e2e8f0; border-top: none;">
               <h2 style="color: #0891b2; margin-top: 0;">¡Cita Confirmada!</h2>
-              
               <p>Estimado/a <strong>${patientName}</strong>,</p>
-              
               <p>Su cita ha sido agendada exitosamente. A continuación los detalles:</p>
-              
               <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #0891b2; margin: 20px 0;">
                 <table style="width: 100%; border-collapse: collapse;">
                   <tr>
                     <td style="padding: 8px 0; color: #64748b; width: 120px;">Servicio:</td>
-                    <td style="padding: 8px 0; font-weight: bold;">${service}</td>
+                    <td style="padding: 8px 0; font-weight: bold;">${service.name}</td>
                   </tr>
                   <tr>
                     <td style="padding: 8px 0; color: #64748b;">Doctor:</td>
-                    <td style="padding: 8px 0; font-weight: bold;">${doctor}</td>
+                    <td style="padding: 8px 0; font-weight: bold;">${doctor.name}</td>
                   </tr>
                   <tr>
                     <td style="padding: 8px 0; color: #64748b;">Fecha:</td>
@@ -127,23 +147,20 @@ export async function POST(request: Request) {
                     <td style="padding: 8px 0; color: #64748b;">Notas:</td>
                     <td style="padding: 8px 0;">${notes}</td>
                   </tr>
-                  ` : ''}
+                  ` : ""}
                 </table>
               </div>
-              
               <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
                 <p style="margin: 0; color: #92400e; font-size: 14px;">
                   <strong>Recordatorio:</strong> Por favor llegue 15 minutos antes de su cita. Si necesita cancelar o reprogramar, contáctenos con al menos 24 horas de anticipación.
                 </p>
               </div>
-              
               <p style="color: #64748b; font-size: 14px;">
                 Si tiene alguna pregunta, no dude en contactarnos:<br>
                 Teléfono: +1 (555) 123-4567<br>
                 Email: contacto@dentacare.com
               </p>
             </div>
-            
             <div style="background: #1e293b; padding: 20px; text-align: center; border-radius: 0 0 10px 10px;">
               <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">
                 © ${new Date().getFullYear()} DentaCare. Todos los derechos reservados.<br>
@@ -156,7 +173,6 @@ export async function POST(request: Request) {
       })
     } catch (emailError) {
       console.error("Error al enviar el correo:", emailError)
-      // No fallamos la petición si el correo falla, la cita ya está guardada
     }
 
     return NextResponse.json({
@@ -177,9 +193,13 @@ export async function GET() {
   try {
     const supabase = await createClient()
 
-    const { data: appointments, error } = await supabase
+    const { data, error } = await supabase
       .from("appointments")
-      .select("*")
+      .select(`
+        *,
+        doctor:doctors(name),
+        service:services(name)
+      `)
       .order("appointment_date", { ascending: true })
       .order("appointment_time", { ascending: true })
 
@@ -190,6 +210,12 @@ export async function GET() {
         { status: 500 }
       )
     }
+
+    const appointments = data.map((apt: any) => ({
+      ...apt,
+      doctor: apt.doctor?.name ?? "",
+      service: apt.service?.name ?? "",
+    }))
 
     return NextResponse.json({ appointments })
   } catch (error) {
