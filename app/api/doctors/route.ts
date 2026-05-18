@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import type { DoctorRow } from "@/types"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Error al obtener doctores" }, { status: 500 })
   }
 
-  const doctors = data.map((d: any) => ({
+  const doctors = (data as unknown as DoctorRow[]).map((d) => ({
     id: d.id,
     name: d.name,
     specialty: d.specialties?.name ?? "",

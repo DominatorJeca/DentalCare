@@ -17,19 +17,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar } from "@/components/ui/calendar"
 import { CalendarDays, Clock, User, Check } from "lucide-react"
-
-type Service = {
-  id: string
-  name: string
-  duration_minutes: number
-  price: number
-}
-
-type Doctor = {
-  id: string
-  name: string
-  specialty: string
-}
+import type { Service, Doctor } from "@/types"
 
 export default function CitasPage() {
   const [step, setStep] = useState(1)

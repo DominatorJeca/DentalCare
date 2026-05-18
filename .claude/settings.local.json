@@ -6,7 +6,11 @@
       "Bash(node -e \"require\\('dotenv'\\).config\\({path:'.env.local'}\\); console.log\\('SUPABASE_URL length:', \\(process.env.NEXT_PUBLIC_SUPABASE_URL||''\\).length\\); console.log\\('SUPABASE_ANON_KEY length:', \\(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||''\\).length\\);\")",
       "Bash(awk -F= '{print length\\($2\\), \"chars\"}')",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\javier.castro\\\\OneDrive - GR_ELCX\\\\Escritorio\\\\Personal\\\\Dental Care\\\\DentalCare\" -Recurse -Directory)",
-      "Bash(Select-Object -First 20 FullName)"
+      "Bash(Select-Object -First 20 FullName)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Proyectos Personales\\\\DentalCare\\\\DentalCare\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Proyectos Personales\\\\DentalCare\\\\DentalCare\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)"
     ]
   }
 }

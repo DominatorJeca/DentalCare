@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { Resend } from "resend"
 import { NextResponse } from "next/server"
+import type { AppointmentRow } from "@/types"
 
 export async function POST(request: Request) {
   try {
@@ -96,7 +97,10 @@ export async function POST(request: Request) {
       )
     }
 
-    const formattedDate = new Date(appointmentDate).toLocaleDateString("es-ES", {
+    const origin = new URL(request.url).origin
+    const cancelUrl = `${origin}/citas/cancelar?token=${appointment.cancel_token}`
+
+    const formattedDate = new Date(`${appointmentDate}T12:00:00`).toLocaleDateString("es-ES", {
       weekday: "long",
       year: "numeric",
       month: "long",
@@ -152,8 +156,13 @@ export async function POST(request: Request) {
               </div>
               <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
                 <p style="margin: 0; color: #92400e; font-size: 14px;">
-                  <strong>Recordatorio:</strong> Por favor llegue 15 minutos antes de su cita. Si necesita cancelar o reprogramar, contáctenos con al menos 24 horas de anticipación.
+                  <strong>Recordatorio:</strong> Por favor llegue 15 minutos antes de su cita.
                 </p>
+              </div>
+              <div style="text-align: center; margin: 20px 0;">
+                <a href="${cancelUrl}" style="display: inline-block; padding: 10px 24px; background: #fee2e2; color: #991b1b; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500;">
+                  Cancelar mi cita
+                </a>
               </div>
               <p style="color: #64748b; font-size: 14px;">
                 Si tiene alguna pregunta, no dude en contactarnos:<br>
@@ -211,7 +220,7 @@ export async function GET() {
       )
     }
 
-    const appointments = data.map((apt: any) => ({
+    const appointments = (data as AppointmentRow[]).map((apt) => ({
       ...apt,
       doctor: apt.doctor?.name ?? "",
       service: apt.service?.name ?? "",

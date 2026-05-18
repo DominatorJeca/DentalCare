@@ -27,22 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-
-type AppointmentStatus = "pendiente" | "confirmada" | "completada" | "cancelada"
-
-interface Appointment {
-  id: string
-  patient_name: string
-  patient_email: string
-  patient_phone: string
-  service: string
-  doctor: string
-  appointment_date: string
-  appointment_time: string
-  notes: string | null
-  status: AppointmentStatus
-  created_at: string
-}
+import type { Appointment, AppointmentStatus } from "@/types"
 
 const statusConfig: Record<AppointmentStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pendiente: { label: "Pendiente", variant: "secondary" },

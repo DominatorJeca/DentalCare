@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import type { AppointmentAvailabilityRow } from "@/types"
 
 function timeToMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number)
@@ -65,9 +66,9 @@ export async function GET(request: Request) {
   const unavailableSlots = allSlots.filter((slot) => {
     const slotStart = timeToMinutes(slot)
     const slotEnd = slotStart + requestedDuration
-    return existing?.some((appt) => {
+    return (existing as unknown as AppointmentAvailabilityRow[] | null)?.some((appt) => {
       const apptStart = timeToMinutes(appt.appointment_time)
-      const apptDuration = (appt.service as any)?.duration_minutes ?? 30
+      const apptDuration = appt.service?.duration_minutes ?? 30
       return slotStart < apptStart + apptDuration && slotEnd > apptStart
     }) ?? false
   })
