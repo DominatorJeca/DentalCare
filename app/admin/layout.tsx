@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Toaster } from "@/components/ui/toaster"
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -132,6 +133,7 @@ export default function AdminLayout({
         {/* Page content */}
         <main className="flex-1 overflow-auto p-4 lg:p-8">{children}</main>
       </div>
+      <Toaster />
     </div>
   )
 }

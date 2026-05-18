@@ -46,3 +46,4 @@ export interface AppointmentAvailabilityRow {
   appointment_time: string
   service: { duration_minutes: number } | null
 }
+

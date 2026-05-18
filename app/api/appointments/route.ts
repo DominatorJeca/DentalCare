@@ -16,7 +16,11 @@ export async function POST(request: Request) {
       appointmentDate,
       appointmentTime,
       notes,
+      status,
     } = body
+
+    const VALID_STATUSES = ["pendiente", "confirmada", "completada", "cancelada"]
+    const resolvedStatus = VALID_STATUSES.includes(status) ? status : "pendiente"
 
     if (!patientName || !patientEmail || !patientPhone || !serviceId || !doctorId || !appointmentDate || !appointmentTime) {
       return NextResponse.json(
@@ -84,7 +88,7 @@ export async function POST(request: Request) {
         appointment_date: appointmentDate,
         appointment_time: appointmentTime,
         notes: notes || null,
-        status: "pendiente",
+        status: resolvedStatus,
       })
       .select()
       .single()
