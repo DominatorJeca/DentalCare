@@ -15,13 +15,30 @@ export function Contact() {
     phone: "",
     message: "",
   })
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission
-    console.log("Form submitted:", formData)
-    alert("Mensaje enviado correctamente. Nos pondremos en contacto pronto.")
-    setFormData({ name: "", email: "", phone: "", message: "" })
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Error al enviar el mensaje")
+      setIsSuccess(true)
+      setFormData({ name: "", email: "", phone: "", message: "" })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al enviar el mensaje")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const contactInfo = [
@@ -153,9 +170,19 @@ export function Contact() {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full">
+                {isSuccess && (
+                  <div className="rounded-md bg-accent/10 p-3 text-sm text-accent-foreground">
+                    Mensaje enviado. Nos pondremos en contacto pronto.
+                  </div>
+                )}
+                {error && (
+                  <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                    {error}
+                  </div>
+                )}
+                <Button type="submit" className="w-full" disabled={isLoading}>
                   <Send className="mr-2 h-4 w-4" />
-                  Enviar Mensaje
+                  {isLoading ? "Enviando..." : "Enviar Mensaje"}
                 </Button>
               </form>
             </CardContent>

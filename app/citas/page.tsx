@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -17,37 +17,15 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar } from "@/components/ui/calendar"
 import { CalendarDays, Clock, User, Check } from "lucide-react"
-
-const services = [
-  { id: "limpieza", name: "Limpieza Dental", duration: "45 min", price: "$50" },
-  { id: "revision", name: "Revisión General", duration: "30 min", price: "$35" },
-  { id: "blanqueamiento", name: "Blanqueamiento", duration: "60 min", price: "$200" },
-  { id: "ortodoncia", name: "Consulta Ortodoncia", duration: "45 min", price: "$75" },
-  { id: "implantes", name: "Consulta Implantes", duration: "45 min", price: "$75" },
-  { id: "endodoncia", name: "Endodoncia", duration: "90 min", price: "$300" },
-  { id: "urgencia", name: "Urgencia Dental", duration: "30 min", price: "$100" },
-]
-
-const doctors = [
-  { id: "maria", name: "Dra. María García", specialty: "Ortodoncia" },
-  { id: "carlos", name: "Dr. Carlos Rodríguez", specialty: "Implantes" },
-  { id: "ana", name: "Dra. Ana Martínez", specialty: "Estética" },
-  { id: "luis", name: "Dr. Luis Fernández", specialty: "Endodoncia" },
-]
-
-const timeSlots = [
-  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "12:00", "12:30", "15:00", "15:30", "16:00", "16:30",
-  "17:00", "17:30", "18:00", "18:30",
-]
+import type { Service, Doctor } from "@/types"
 
 export default function CitasPage() {
   const [step, setStep] = useState(1)
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [selectedTime, setSelectedTime] = useState<string>("")
   const [formData, setFormData] = useState({
-    service: "",
-    doctor: "",
+    serviceId: "",
+    doctorId: "",
     name: "",
     email: "",
     phone: "",
@@ -57,8 +35,64 @@ export default function CitasPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const selectedService = services.find((s) => s.id === formData.service)
-  const selectedDoctor = doctors.find((d) => d.id === formData.doctor)
+  const [services, setServices] = useState<Service[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [loadingServices, setLoadingServices] = useState(true)
+  const [loadingDoctors, setLoadingDoctors] = useState(false)
+  const [allSlots, setAllSlots] = useState<string[]>([])
+  const [unavailableSlots, setUnavailableSlots] = useState<string[]>([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
+
+  const selectedService = services.find((s) => s.id === formData.serviceId)
+  const selectedDoctor = doctors.find((d) => d.id === formData.doctorId)
+
+  useEffect(() => {
+    fetch("/api/services")
+      .then((r) => r.json())
+      .then((data) => setServices(data.services || []))
+      .catch(() => {})
+      .finally(() => setLoadingServices(false))
+  }, [])
+
+  useEffect(() => {
+    if (!formData.serviceId) {
+      setDoctors([])
+      return
+    }
+    setLoadingDoctors(true)
+    setFormData((prev) => ({ ...prev, doctorId: "" }))
+    setAllSlots([])
+    setUnavailableSlots([])
+    setSelectedTime("")
+    fetch(`/api/doctors?service_id=${formData.serviceId}`)
+      .then((r) => r.json())
+      .then((data) => setDoctors(data.doctors || []))
+      .catch(() => {})
+      .finally(() => setLoadingDoctors(false))
+  }, [formData.serviceId])
+
+  useEffect(() => {
+    if (!date || !formData.doctorId || !formData.serviceId) {
+      setAllSlots([])
+      setUnavailableSlots([])
+      return
+    }
+    setLoadingSlots(true)
+    const dateStr = date.toISOString().split("T")[0]
+    fetch(
+      `/api/appointments/availability?doctor_id=${formData.doctorId}&date=${dateStr}&service_id=${formData.serviceId}`
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        setAllSlots(data.allSlots || [])
+        setUnavailableSlots(data.unavailableSlots || [])
+        setSelectedTime((prev) =>
+          (data.unavailableSlots || []).includes(prev) ? "" : prev
+        )
+      })
+      .catch(() => {})
+      .finally(() => setLoadingSlots(false))
+  }, [date, formData.doctorId, formData.serviceId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -68,15 +102,13 @@ export default function CitasPage() {
     try {
       const response = await fetch("/api/appointments", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           patientName: formData.name,
           patientEmail: formData.email,
           patientPhone: formData.phone,
-          service: selectedService?.name,
-          doctor: selectedDoctor?.name,
+          serviceId: formData.serviceId,
+          doctorId: formData.doctorId,
           appointmentDate: date?.toISOString().split("T")[0],
           appointmentTime: selectedTime,
           notes: formData.notes,
@@ -97,7 +129,7 @@ export default function CitasPage() {
     }
   }
 
-  const canProceedToStep2 = formData.service && formData.doctor
+  const canProceedToStep2 = formData.serviceId && formData.doctorId
   const canProceedToStep3 = date && selectedTime
   const canSubmit = formData.name && formData.email && formData.phone
 
@@ -123,9 +155,7 @@ export default function CitasPage() {
               <div className="rounded-lg bg-muted p-4 text-left">
                 <p className="text-sm text-muted-foreground">Resumen:</p>
                 <p className="font-medium">{selectedService?.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {selectedDoctor?.name}
-                </p>
+                <p className="text-sm text-muted-foreground">{selectedDoctor?.name}</p>
                 <p className="text-sm text-muted-foreground">
                   {date?.toLocaleDateString("es-ES", {
                     weekday: "long",
@@ -142,9 +172,12 @@ export default function CitasPage() {
                   setStep(1)
                   setDate(undefined)
                   setSelectedTime("")
+                  setAllSlots([])
+                  setUnavailableSlots([])
+                  setDoctors([])
                   setFormData({
-                    service: "",
-                    doctor: "",
+                    serviceId: "",
+                    doctorId: "",
                     name: "",
                     email: "",
                     phone: "",
@@ -221,19 +254,22 @@ export default function CitasPage() {
 
           <Card>
             <CardContent className="p-6">
-              {/* Step 1: Service & Doctor Selection */}
+              {/* Step 1: Service & Doctor */}
               {step === 1 && (
                 <div className="space-y-6">
                   <div className="space-y-3">
                     <Label htmlFor="service">Tipo de servicio</Label>
                     <Select
-                      value={formData.service}
+                      value={formData.serviceId}
                       onValueChange={(value) =>
-                        setFormData({ ...formData, service: value })
+                        setFormData({ ...formData, serviceId: value })
                       }
+                      disabled={loadingServices}
                     >
                       <SelectTrigger id="service">
-                        <SelectValue placeholder="Selecciona un servicio" />
+                        <SelectValue
+                          placeholder={loadingServices ? "Cargando..." : "Selecciona un servicio"}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {services.map((service) => (
@@ -241,7 +277,7 @@ export default function CitasPage() {
                             <div className="flex items-center justify-between gap-4">
                               <span>{service.name}</span>
                               <span className="text-xs text-muted-foreground">
-                                {service.duration} - {service.price}
+                                {service.duration_minutes} min · ${service.price}
                               </span>
                             </div>
                           </SelectItem>
@@ -253,13 +289,22 @@ export default function CitasPage() {
                   <div className="space-y-3">
                     <Label htmlFor="doctor">Doctor preferido</Label>
                     <Select
-                      value={formData.doctor}
+                      value={formData.doctorId}
                       onValueChange={(value) =>
-                        setFormData({ ...formData, doctor: value })
+                        setFormData({ ...formData, doctorId: value })
                       }
+                      disabled={!formData.serviceId || loadingDoctors}
                     >
                       <SelectTrigger id="doctor">
-                        <SelectValue placeholder="Selecciona un doctor" />
+                        <SelectValue
+                          placeholder={
+                            !formData.serviceId
+                              ? "Selecciona un servicio primero"
+                              : loadingDoctors
+                                ? "Cargando doctores..."
+                                : "Selecciona un doctor"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {doctors.map((doctor) => (
@@ -286,7 +331,7 @@ export default function CitasPage() {
                 </div>
               )}
 
-              {/* Step 2: Date & Time Selection */}
+              {/* Step 2: Date & Time */}
               {step === 2 && (
                 <div className="space-y-6">
                   <div className="grid gap-6 lg:grid-cols-2">
@@ -304,31 +349,51 @@ export default function CitasPage() {
                     </div>
 
                     <div>
-                      <Label className="mb-3 block">Selecciona una hora</Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {timeSlots.map((time) => (
-                          <button
-                            key={time}
-                            onClick={() => setSelectedTime(time)}
-                            className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                              selectedTime === time
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border bg-card hover:border-primary/50 hover:bg-muted"
-                            }`}
-                          >
-                            {time}
-                          </button>
-                        ))}
-                      </div>
+                      <Label className="mb-3 block">
+                        Selecciona una hora
+                        {loadingSlots && (
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                            Verificando disponibilidad...
+                          </span>
+                        )}
+                      </Label>
+                      {!date ? (
+                        <p className="text-sm text-muted-foreground">
+                          Selecciona una fecha para ver los horarios disponibles.
+                        </p>
+                      ) : allSlots.length === 0 && !loadingSlots ? (
+                        <p className="text-sm text-muted-foreground">
+                          No hay horarios disponibles para este día.
+                        </p>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-2">
+                          {allSlots.map((time) => {
+                            const isBooked = unavailableSlots.includes(time)
+                            return (
+                              <button
+                                key={time}
+                                onClick={() => !isBooked && setSelectedTime(time)}
+                                disabled={isBooked || loadingSlots}
+                                title={isBooked ? "Horario no disponible" : undefined}
+                                className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                                  isBooked
+                                    ? "cursor-not-allowed border-border bg-muted text-muted-foreground line-through opacity-50"
+                                    : selectedTime === time
+                                      ? "border-primary bg-primary text-primary-foreground"
+                                      : "border-border bg-card hover:border-primary/50 hover:bg-muted"
+                                }`}
+                              >
+                                {time}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => setStep(1)}
-                      className="flex-1"
-                    >
+                    <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
                       Atrás
                     </Button>
                     <Button
@@ -350,7 +415,9 @@ export default function CitasPage() {
                       Resumen de tu cita
                     </p>
                     <div className="mt-2 text-sm text-muted-foreground">
-                      <p>{selectedService?.name} con {selectedDoctor?.name}</p>
+                      <p>
+                        {selectedService?.name} con {selectedDoctor?.name}
+                      </p>
                       <p>
                         {date?.toLocaleDateString("es-ES", {
                           weekday: "long",

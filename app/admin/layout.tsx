@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard,
   Calendar,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Toaster } from "@/components/ui/toaster"
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -27,7 +28,17 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  if (pathname === "/admin/login") {
+    return <>{children}</>
+  }
+
+  const handleLogout = async () => {
+    await fetch("/api/admin/auth/logout", { method: "POST" })
+    router.push("/admin/login")
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -95,11 +106,13 @@ export default function AdminLayout({
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 border-t border-border p-4">
-          <Button variant="ghost" className="w-full justify-start gap-3" asChild>
-            <Link href="/">
-              <LogOut className="h-4 w-4" />
-              Salir del panel
-            </Link>
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" />
+            Salir del panel
           </Button>
         </div>
       </aside>
@@ -120,6 +133,7 @@ export default function AdminLayout({
         {/* Page content */}
         <main className="flex-1 overflow-auto p-4 lg:p-8">{children}</main>
       </div>
+      <Toaster />
     </div>
   )
 }
