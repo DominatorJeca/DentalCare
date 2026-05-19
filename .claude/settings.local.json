@@ -12,7 +12,9 @@
       "Bash(Get-ChildItem -Path \"D:\\\\Proyectos Personales\\\\DentalCare\\\\DentalCare\" -Recurse -Directory)",
       "Bash(Select-Object FullName)",
       "Bash(Get-ChildItem -Recurse -Filter \"*cita*\" -ErrorAction SilentlyContinue)",
-      "Bash(xargs grep -l \"form\\\\|booking\\\\|appointment\\\\|cita\\\\|schedule\")"
+      "Bash(xargs grep -l \"form\\\\|booking\\\\|appointment\\\\|cita\\\\|schedule\")",
+      "Bash(Get-ChildItem *)",
+      "PowerShell(ls -Path \"D:\\\\Proyectos Personales\\\\DentalCare\\\\DentalCare\" | Where-Object {$_.PSIsContainer})"
     ]
   }
 }

@@ -6,13 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
   Table,
   TableBody,
   TableCell,
@@ -23,12 +16,18 @@ import {
 } from "@/components/ui/table"
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Search, Filter, MoreHorizontal, Calendar, Plus, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Search, Filter, MoreHorizontal, Calendar, CalendarRange, Plus, RefreshCw, ChevronLeft, ChevronRight, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import type { DateRange } from "react-day-picker"
+import { es } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
 import { RescheduleModal } from "@/components/admin/reschedule-modal"
 import type { RescheduleTarget } from "@/components/admin/reschedule-modal"
@@ -55,10 +54,31 @@ export default function CitasAdminPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState<Set<AppointmentStatus>>(new Set())
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const [rescheduleTarget, setRescheduleTarget] = useState<RescheduleTarget | null>(null)
   const [newAppointmentOpen, setNewAppointmentOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [sortField, setSortField] = useState<"patient_name" | "service" | "doctor" | "appointment_date" | "status" | null>(null)
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
+
+  const handleSort = (field: "patient_name" | "service" | "doctor" | "appointment_date" | "status") => {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortField(field)
+      setSortDir("asc")
+    }
+  }
+
+  const toggleStatus = (status: AppointmentStatus) => {
+    setStatusFilter((prev) => {
+      const next = new Set(prev)
+      if (next.has(status)) next.delete(status)
+      else next.add(status)
+      return next
+    })
+  }
 
   const fetchAppointments = useCallback(async () => {
     setIsLoading(true)
@@ -115,20 +135,41 @@ export default function CitasAdminPage() {
     })
   }
 
+  const toLocalDateStr = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+
   const filteredAppointments = appointments.filter((apt) => {
     const matchesSearch =
       apt.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       apt.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       apt.service.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || apt.status === statusFilter
-    return matchesSearch && matchesStatus
+    const matchesStatus = statusFilter.size === 0 || statusFilter.has(apt.status)
+    const matchesDate = (() => {
+      if (!dateRange?.from) return true
+      const from = toLocalDateStr(dateRange.from)
+      const to = dateRange.to ? toLocalDateStr(dateRange.to) : from
+      return apt.appointment_date >= from && apt.appointment_date <= to
+    })()
+    return matchesSearch && matchesStatus && matchesDate
   })
 
-  // Reset a página 1 cuando cambia el filtro o búsqueda
-  useEffect(() => { setCurrentPage(1) }, [searchTerm, statusFilter])
+  useEffect(() => { setCurrentPage(1) }, [searchTerm, statusFilter, dateRange, sortField, sortDir])
 
-  const totalPages = Math.max(1, Math.ceil(filteredAppointments.length / PAGE_SIZE))
-  const paginatedAppointments = filteredAppointments.slice(
+  const sortedAppointments = sortField
+    ? [...filteredAppointments].sort((a, b) => {
+        let cmp = 0
+        if (sortField === "appointment_date") {
+          cmp = a.appointment_date.localeCompare(b.appointment_date)
+            || a.appointment_time.localeCompare(b.appointment_time)
+        } else {
+          cmp = a[sortField].localeCompare(b[sortField])
+        }
+        return sortDir === "asc" ? cmp : -cmp
+      })
+    : filteredAppointments
+
+  const totalPages = Math.max(1, Math.ceil(sortedAppointments.length / PAGE_SIZE))
+  const paginatedAppointments = sortedAppointments.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
   )
@@ -175,29 +216,100 @@ export default function CitasAdminPage() {
                 {filteredAppointments.length} cita{filteredAppointments.length !== 1 ? "s" : ""} encontrada{filteredAppointments.length !== 1 ? "s" : ""} · página {currentPage} de {totalPages}
               </CardDescription>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por paciente o servicio..."
-                  className="pl-9"
+                  className="pl-9 sm:w-64"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <Filter className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="Estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="confirmada">Confirmada</SelectItem>
-                  <SelectItem value="completada">Completada</SelectItem>
-                  <SelectItem value="cancelada">Cancelada</SelectItem>
-                </SelectContent>
-              </Select>
+
+              {/* Filtro por estado */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto justify-start sm:justify-center">
+                    <Filter className="mr-2 h-4 w-4 shrink-0" />
+                    Estado
+                    {statusFilter.size > 0 && (
+                      <Badge className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
+                        {statusFilter.size}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Filtrar por estado</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {(Object.keys(statusConfig) as AppointmentStatus[]).map((status) => (
+                    <DropdownMenuCheckboxItem
+                      key={status}
+                      checked={statusFilter.has(status)}
+                      onCheckedChange={() => toggleStatus(status)}
+                    >
+                      {statusConfig[status].label}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  {statusFilter.size > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-muted-foreground text-xs"
+                        onClick={() => setStatusFilter(new Set())}
+                      >
+                        <X className="mr-2 h-3.5 w-3.5" />
+                        Limpiar filtro
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Filtro por rango de fechas */}
+              <div className="flex w-full sm:w-auto">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={`flex-1 sm:flex-none justify-start sm:justify-center${dateRange?.from ? " rounded-r-none border-r-0" : ""}`}
+                    >
+                      <CalendarRange className="mr-2 h-4 w-4 shrink-0" />
+                      {dateRange?.from ? (
+                        <span>
+                          {dateRange.from.toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+                          {dateRange.to && dateRange.to.getTime() !== dateRange.from.getTime()
+                            ? ` – ${dateRange.to.toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`
+                            : ""}
+                        </span>
+                      ) : (
+                        "Fecha"
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <CalendarComponent
+                      mode="range"
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                      locale={es}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {dateRange?.from && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-l-none px-2"
+                    onClick={() => setDateRange(undefined)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -218,12 +330,28 @@ export default function CitasAdminPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Paciente</TableHead>
-                    <TableHead>Servicio</TableHead>
-                    <TableHead>Doctor</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Hora</TableHead>
-                    <TableHead>Estado</TableHead>
+                    {([
+                      { label: "Paciente",  field: "patient_name"      },
+                      { label: "Servicio",  field: "service"            },
+                      { label: "Doctor",    field: "doctor"             },
+                      { label: "Fecha",     field: "appointment_date"   },
+                      { label: "Hora",      field: null                 },
+                      { label: "Estado",    field: "status"             },
+                    ] as { label: string; field: "patient_name" | "service" | "doctor" | "appointment_date" | "status" | null }[]).map(({ label, field }) => {
+                      if (!field) return <TableHead key={label}>{label}</TableHead>
+                      const Icon = sortField !== field ? ArrowUpDown : sortDir === "asc" ? ArrowUp : ArrowDown
+                      return (
+                        <TableHead key={field}>
+                          <button
+                            className="flex items-center gap-1 hover:text-foreground transition-colors select-none"
+                            onClick={() => handleSort(field)}
+                          >
+                            {label}
+                            <Icon className={`h-3.5 w-3.5 ${sortField === field ? "text-foreground" : "text-muted-foreground/50"}`} />
+                          </button>
+                        </TableHead>
+                      )
+                    })}
                     <TableHead className="w-10" />
                   </TableRow>
                 </TableHeader>

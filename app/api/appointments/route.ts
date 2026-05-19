@@ -101,6 +101,21 @@ export async function POST(request: Request) {
       )
     }
 
+    // Crear paciente si no existe (no sobreescribe datos existentes)
+    const { data: existingPatient } = await supabase
+      .from("patients")
+      .select("id")
+      .eq("email", patientEmail.toLowerCase())
+      .maybeSingle()
+
+    if (!existingPatient) {
+      await supabase.from("patients").insert({
+        name:  patientName,
+        email: patientEmail.toLowerCase(),
+        phone: patientPhone,
+      })
+    }
+
     const origin = new URL(request.url).origin
     const cancelUrl = `${origin}/citas/cancelar?token=${appointment.cancel_token}`
 
@@ -213,8 +228,6 @@ export async function GET() {
         doctor:doctors(name),
         service:services(name)
       `)
-      .order("appointment_date", { ascending: true })
-      .order("appointment_time", { ascending: true })
 
     if (error) {
       console.error("Error al obtener citas:", error)
@@ -224,11 +237,25 @@ export async function GET() {
       )
     }
 
-    const appointments = (data as AppointmentRow[]).map((apt) => ({
-      ...apt,
-      doctor: apt.doctor?.name ?? "",
-      service: apt.service?.name ?? "",
-    }))
+    const today = new Date().toISOString().slice(0, 10)
+
+    const appointments = (data as AppointmentRow[])
+      .map((apt) => ({
+        ...apt,
+        doctor: apt.doctor?.name ?? "",
+        service: apt.service?.name ?? "",
+      }))
+      .sort((a, b) => {
+        const aUpcoming = a.appointment_date >= today
+        const bUpcoming = b.appointment_date >= today
+        if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1
+        if (aUpcoming) {
+          return a.appointment_date.localeCompare(b.appointment_date)
+            || a.appointment_time.localeCompare(b.appointment_time)
+        }
+        return b.appointment_date.localeCompare(a.appointment_date)
+          || b.appointment_time.localeCompare(a.appointment_time)
+      })
 
     return NextResponse.json({ appointments })
   } catch (error) {
