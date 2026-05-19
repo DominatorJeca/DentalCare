@@ -5,8 +5,11 @@ import { Services } from "@/components/landing/services"
 import { Team } from "@/components/landing/team"
 import { Testimonials } from "@/components/landing/testimonials"
 import { Contact } from "@/components/landing/contact"
+import { getClinicSettings } from "@/lib/settings"
 
-export default function Home() {
+export default async function Home() {
+  const settings = await getClinicSettings()
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -15,7 +18,7 @@ export default function Home() {
         <Services />
         <Team />
         <Testimonials />
-        <Contact />
+        <Contact clinicInfo={settings} />
       </main>
       <Footer />
     </div>

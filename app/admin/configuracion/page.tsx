@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,17 +8,31 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Building2, Clock, Bell, Save } from "lucide-react"
+import { Building2, Clock, Bell, Save, RefreshCw } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ConfiguracionPage() {
+  const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+
   const [clinicInfo, setClinicInfo] = useState({
-    name: "DentaCare",
-    address: "Av. Principal 123, Ciudad",
-    phone: "+1 (234) 567-890",
-    email: "info@dentacare.com",
-    description:
-      "Clínica dental profesional con los mejores especialistas. Ofrecemos tratamientos de ortodoncia, implantes, blanqueamiento y más.",
+    name: "",
+    address: "",
+    phone: "",
+    email: "",
+    description: "",
   })
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then(({ settings }) => {
+        if (settings) setClinicInfo(settings)
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false))
+  }, [])
 
   const [schedule, setSchedule] = useState({
     mondayFriday: { open: "09:00", close: "19:00" },
@@ -34,9 +48,21 @@ export default function ConfiguracionPage() {
     cancelNotification: true,
   })
 
-  const handleSave = () => {
-    console.log("Saving configuration:", { clinicInfo, schedule, notifications })
-    alert("Configuración guardada correctamente")
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(clinicInfo),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: "Configuración guardada", description: "Los cambios se reflejarán en el sitio web" })
+    } catch {
+      toast({ title: "Error", description: "No se pudo guardar la configuración", variant: "destructive" })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -137,9 +163,11 @@ export default function ConfiguracionPage() {
                 />
               </div>
 
-              <Button onClick={handleSave}>
-                <Save className="mr-2 h-4 w-4" />
-                Guardar Cambios
+              <Button onClick={handleSave} disabled={isSaving || isLoading}>
+                {isSaving
+                  ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  : <Save className="mr-2 h-4 w-4" />}
+                {isSaving ? "Guardando..." : "Guardar Cambios"}
               </Button>
             </CardContent>
           </Card>

@@ -8,7 +8,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Phone, Mail, MapPin, Clock, Send } from "lucide-react"
 
-export function Contact() {
+interface ClinicInfo {
+  phone: string
+  email: string
+  address: string
+}
+
+export function Contact({ clinicInfo }: { clinicInfo: ClinicInfo }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -45,19 +51,19 @@ export function Contact() {
     {
       icon: Phone,
       title: "Teléfono",
-      content: "+1 (234) 567-890",
-      href: "tel:+1234567890",
+      content: clinicInfo.phone,
+      href: `tel:${clinicInfo.phone.replace(/\D/g, "")}`,
     },
     {
       icon: Mail,
       title: "Email",
-      content: "info@dentacare.com",
-      href: "mailto:info@dentacare.com",
+      content: clinicInfo.email,
+      href: `mailto:${clinicInfo.email}`,
     },
     {
       icon: MapPin,
       title: "Dirección",
-      content: "Av. Principal 123, Ciudad",
+      content: clinicInfo.address,
       href: "#",
     },
     {
