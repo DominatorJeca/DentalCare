@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Building2, Clock, Bell, Save, RefreshCw } from "lucide-react"
+import { Building2, Clock, Bell, Save, RefreshCw, Stethoscope, MessageCircleQuestion } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { ServiciosTab } from "@/components/admin/servicios-tab"
+import { FAQsTab } from "@/components/admin/faqs-tab"
 
 export default function ConfiguracionPage() {
   const { toast } = useToast()
@@ -89,6 +91,14 @@ export default function ConfiguracionPage() {
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Notificaciones</span>
+          </TabsTrigger>
+          <TabsTrigger value="servicios" className="gap-2">
+            <Stethoscope className="h-4 w-4" />
+            <span className="hidden sm:inline">Servicios</span>
+          </TabsTrigger>
+          <TabsTrigger value="faq" className="gap-2">
+            <MessageCircleQuestion className="h-4 w-4" />
+            <span className="hidden sm:inline">FAQ</span>
           </TabsTrigger>
         </TabsList>
 
@@ -284,6 +294,36 @@ export default function ConfiguracionPage() {
                 <Save className="mr-2 h-4 w-4" />
                 Guardar Cambios
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Servicios Tab */}
+        <TabsContent value="servicios">
+          <Card>
+            <CardHeader>
+              <CardTitle>Servicios</CardTitle>
+              <CardDescription>
+                Administra los servicios que se muestran en el sitio web y en el formulario de citas
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ServiciosTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* FAQ Tab */}
+        <TabsContent value="faq">
+          <Card>
+            <CardHeader>
+              <CardTitle>Preguntas Frecuentes</CardTitle>
+              <CardDescription>
+                Gestiona las preguntas y respuestas que se muestran en el sitio web
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FAQsTab />
             </CardContent>
           </Card>
         </TabsContent>

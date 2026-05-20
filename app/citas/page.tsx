@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -19,7 +20,10 @@ import { Calendar } from "@/components/ui/calendar"
 import { CalendarDays, Clock, User, Check } from "lucide-react"
 import type { Service, Doctor } from "@/types"
 
-export default function CitasPage() {
+function CitasContent() {
+  const searchParams = useSearchParams()
+  const serviceParam = searchParams.get("service") ?? ""
+
   const [step, setStep] = useState(1)
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [selectedTime, setSelectedTime] = useState<string>("")
@@ -49,10 +53,16 @@ export default function CitasPage() {
   useEffect(() => {
     fetch("/api/services")
       .then((r) => r.json())
-      .then((data) => setServices(data.services || []))
+      .then((data) => {
+        const list: Service[] = data.services || []
+        setServices(list)
+        if (serviceParam && list.some((s) => s.id === serviceParam)) {
+          setFormData((prev) => ({ ...prev, serviceId: serviceParam }))
+        }
+      })
       .catch(() => {})
       .finally(() => setLoadingServices(false))
-  }, [])
+  }, [serviceParam])
 
   useEffect(() => {
     if (!formData.serviceId) {
@@ -517,5 +527,13 @@ export default function CitasPage() {
       </main>
       <Footer />
     </div>
+  )
+}
+
+export default function CitasPage() {
+  return (
+    <Suspense>
+      <CitasContent />
+    </Suspense>
   )
 }

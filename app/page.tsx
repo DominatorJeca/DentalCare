@@ -4,6 +4,7 @@ import { Hero } from "@/components/landing/hero"
 import { Services } from "@/components/landing/services"
 import { Team } from "@/components/landing/team"
 import { Testimonials } from "@/components/landing/testimonials"
+import { FAQ } from "@/components/landing/faq"
 import { Contact } from "@/components/landing/contact"
 import { getClinicSettings } from "@/lib/settings"
 
@@ -18,6 +19,7 @@ export default async function Home() {
         <Services />
         <Team />
         <Testimonials />
+        <FAQ />
         <Contact clinicInfo={settings} />
       </main>
       <Footer />
