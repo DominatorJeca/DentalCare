@@ -42,8 +42,8 @@ export async function GET(
       records: records ?? [],
       appointments: (appointments ?? []).map((apt) => ({
         ...apt,
-        service: (apt.service as { name: string } | null)?.name ?? "",
-        doctor:  (apt.doctor  as { name: string } | null)?.name ?? "",
+        service: (apt.service as unknown as { name: string } | null)?.name ?? "",
+        doctor:  (apt.doctor  as unknown as { name: string } | null)?.name ?? "",
       })),
     })
   } catch (error) {

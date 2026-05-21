@@ -10,6 +10,7 @@ interface ToothSVGProps {
   onSurfaceClick?: (surface: Surface) => void
   size?: number
   numberPosition?: "top" | "bottom"
+  eraseMode?: boolean
 }
 
 // viewBox 0 0 40 40 — five clickable zones
@@ -27,6 +28,7 @@ export function ToothSVG({
   onSurfaceClick,
   size = 40,
   numberPosition = "top",
+  eraseMode = false,
 }: ToothSVGProps) {
   const wholeMark = [...marks].reverse().find((m) => m.surface === "whole")
 
@@ -55,7 +57,7 @@ export function ToothSVG({
         width={size}
         height={size}
         style={{ display: "block" }}
-        className={onSurfaceClick ? "cursor-pointer" : undefined}
+        className={eraseMode ? "cursor-cell" : onSurfaceClick ? "cursor-pointer" : undefined}
       >
         <rect x="0" y="0" width="40" height="40" fill="white" />
 

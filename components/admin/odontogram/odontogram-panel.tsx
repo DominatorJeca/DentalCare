@@ -2,10 +2,21 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Save, Plus, RefreshCw } from "lucide-react"
+import { Save, Plus, RefreshCw, Trash2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { ConditionPalette } from "./condition-palette"
 import { OdontogramCanvas } from "./odontogram-canvas"
 import type { DentalEvaluation, ToothCondition, ToothData } from "@/types"
+import { toast } from "@/components/ui/use-toast"
 
 interface OdontogramPanelProps {
   patientId: string
@@ -16,10 +27,12 @@ export function OdontogramPanel({ patientId, recordId }: OdontogramPanelProps) {
   const [evaluation, setEvaluation] = useState<DentalEvaluation | null>(null)
   const [teethData, setTeethData]   = useState<ToothData[]>([])
   const [selectedCondition, setSelectedCondition] = useState<ToothCondition | null>(null)
-  const [loading, setLoading]   = useState(true)
-  const [creating, setCreating] = useState(false)
-  const [saving, setSaving]     = useState(false)
-  const [dirty, setDirty]       = useState(false)
+  const [eraseMode, setEraseMode]   = useState(false)
+  const [loading, setLoading]       = useState(true)
+  const [creating, setCreating]     = useState(false)
+  const [saving, setSaving]         = useState(false)
+  const [dirty, setDirty]           = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
 
   const base = `/api/admin/pacientes/${patientId}/evaluations`
 
@@ -66,7 +79,7 @@ export function OdontogramPanel({ patientId, recordId }: OdontogramPanelProps) {
     setSaving(false)
     if (res.ok) {
       setDirty(false)
-      // actualizar updated_at local
+      toast({ title: "Odontograma guardado", description: "Odontograma guardado correctamente" })
       setEvaluation((prev) =>
         prev ? { ...prev, updated_at: new Date().toISOString() } : prev
       )
@@ -84,6 +97,22 @@ export function OdontogramPanel({ patientId, recordId }: OdontogramPanelProps) {
       return [...prev, updated]
     })
     setDirty(true)
+  }
+
+  function handleConditionSelect(c: ToothCondition) {
+    setSelectedCondition((prev) => (prev === c ? null : c))
+    setEraseMode(false)
+  }
+
+  function handleEraseToggle() {
+    setEraseMode((prev) => !prev)
+    setSelectedCondition(null)
+  }
+
+  function handleResetConfirm() {
+    setTeethData([])
+    setDirty(true)
+    setConfirmReset(false)
   }
 
   if (loading) {
@@ -112,54 +141,93 @@ export function OdontogramPanel({ patientId, recordId }: OdontogramPanelProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Guardar + última actualización */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          Actualizado{" "}
-          {new Date(evaluation.updated_at).toLocaleString("es-ES", {
-            day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
-          })}
-        </p>
-        <Button size="sm" onClick={save} disabled={!dirty || saving}>
-          <Save className="h-3.5 w-3.5 mr-1.5" />
-          {saving ? "Guardando…" : "Guardar"}
-        </Button>
-      </div>
+    <>
+      <div className="space-y-4">
+        {/* Barra superior: última actualización + acciones */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <p className="text-xs text-muted-foreground">
+            Actualizado{" "}
+            {new Date(evaluation.updated_at).toLocaleString("es-ES", {
+              day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+            })}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:border-destructive/50"
+              onClick={() => setConfirmReset(true)}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+              Resetear
+            </Button>
+            <Button size="sm" onClick={save} disabled={!dirty || saving}>
+              <Save className="h-3.5 w-3.5 mr-1.5" />
+              {saving ? "Guardando…" : "Guardar"}
+            </Button>
+          </div>
+        </div>
 
-      {/* Paleta de condiciones */}
-      <div className="rounded-lg border border-border bg-muted/30 p-3">
-        <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          Condición activa — haz clic en una superficie del diente
-        </p>
-        <ConditionPalette
-          selected={selectedCondition}
-          onSelect={(c) => setSelectedCondition((prev) => (prev === c ? null : c))}
-        />
-      </div>
+        {/* Paleta de condiciones + borrador */}
+        <div className="rounded-lg border border-border bg-muted/30 p-3">
+          <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            {eraseMode
+              ? "Modo borrador — haz clic en un diente para limpiar sus condiciones"
+              : "Condición activa — haz clic en una superficie del diente"}
+          </p>
+          <ConditionPalette
+            selected={selectedCondition}
+            onSelect={handleConditionSelect}
+            eraseMode={eraseMode}
+            onEraseToggle={handleEraseToggle}
+          />
+        </div>
 
-      {/* Canvas */}
-      <div className="overflow-x-auto rounded-lg border border-border bg-white p-4">
-        <OdontogramCanvas
-          teethData={teethData}
-          selectedCondition={selectedCondition}
-          onToothChange={handleToothChange}
-        />
-      </div>
+        {/* Canvas */}
+        <div className="overflow-x-auto rounded-lg border border-border bg-white p-4">
+          <OdontogramCanvas
+            teethData={teethData}
+            selectedCondition={selectedCondition}
+            eraseMode={eraseMode}
+            onToothChange={handleToothChange}
+          />
+        </div>
 
-      {/* Leyenda */}
-      <div className="rounded-lg border border-border bg-muted/30 p-3">
-        <p className="mb-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          Superficies dentales
-        </p>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <span>▲ Vestibular/Bucal</span>
-          <span>▼ Palatino/Lingual</span>
-          <span>◄ Mesial</span>
-          <span>► Distal</span>
-          <span>■ Oclusal/Incisal</span>
+        {/* Leyenda */}
+        <div className="rounded-lg border border-border bg-muted/30 p-3">
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Superficies dentales
+          </p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span>▲ Vestibular/Bucal</span>
+            <span>▼ Palatino/Lingual</span>
+            <span>◄ Mesial</span>
+            <span>► Distal</span>
+            <span>■ Oclusal/Incisal</span>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Confirmación de reset */}
+      <AlertDialog open={confirmReset} onOpenChange={setConfirmReset}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Resetear el odontograma?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminarán todas las condiciones marcadas. Deberás guardar para que el cambio sea permanente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-white"
+              onClick={handleResetConfirm}
+            >
+              Resetear
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

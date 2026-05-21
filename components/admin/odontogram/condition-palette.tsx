@@ -1,12 +1,13 @@
 "use client"
 
+import { Eraser } from "lucide-react"
 import type { ToothCondition } from "@/types"
 
 export interface ConditionOption {
   condition: ToothCondition
   label: string
   color: string
-  whole?: boolean // applies to whole tooth, not individual surface
+  whole?: boolean
 }
 
 export const CONDITIONS: ConditionOption[] = [
@@ -24,13 +25,15 @@ export const CONDITIONS: ConditionOption[] = [
 interface ConditionPaletteProps {
   selected: ToothCondition | null
   onSelect: (condition: ToothCondition) => void
+  eraseMode: boolean
+  onEraseToggle: () => void
 }
 
-export function ConditionPalette({ selected, onSelect }: ConditionPaletteProps) {
+export function ConditionPalette({ selected, onSelect, eraseMode, onEraseToggle }: ConditionPaletteProps) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {CONDITIONS.map((opt) => {
-        const isSelected = selected === opt.condition
+        const isSelected = !eraseMode && selected === opt.condition
         return (
           <button
             key={opt.condition}
@@ -53,6 +56,22 @@ export function ConditionPalette({ selected, onSelect }: ConditionPaletteProps) 
           </button>
         )
       })}
+
+      {/* Separador visual */}
+      <div className="w-px self-stretch bg-border mx-0.5" />
+
+      {/* Borrador */}
+      <button
+        onClick={onEraseToggle}
+        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-all ${
+          eraseMode
+            ? "border-transparent bg-destructive text-white shadow-sm"
+            : "border-border bg-background text-foreground hover:border-destructive/50 hover:text-destructive"
+        }`}
+      >
+        <Eraser className="h-3 w-3" />
+        Borrador
+      </button>
     </div>
   )
 }
