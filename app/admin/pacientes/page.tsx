@@ -200,52 +200,79 @@ export default function PacientesPage() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Paciente</TableHead>
-                    <TableHead>Cédula</TableHead>
-                    <TableHead>Teléfono</TableHead>
-                    <TableHead>Registrado</TableHead>
-                    <TableHead className="w-10" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPatients.map((patient) => (
-                    <TableRow key={patient.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                            {initials(patient.name)}
-                          </div>
-                          <div>
-                            <p className="font-medium">{patient.name}</p>
-                            <p className="text-xs text-muted-foreground">{patient.email}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {patient.identity_number
-                          ? <span className="font-mono text-sm">{patient.identity_number}</span>
-                          : <span className="text-muted-foreground/60 text-sm">—</span>}
-                      </TableCell>
-                      <TableCell className="text-sm">{patient.phone || "—"}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(patient.created_at).toLocaleDateString("es-ES")}
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link href={`/admin/pacientes/${patient.id}`}>
-                            <ChevronRight className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </TableCell>
+            <>
+              {/* Mobile: tarjetas */}
+              <div className="sm:hidden space-y-2">
+                {filteredPatients.map((patient) => (
+                  <Link
+                    key={patient.id}
+                    href={`/admin/pacientes/${patient.id}`}
+                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-4 transition-colors hover:bg-muted/50"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                      {initials(patient.name)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{patient.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{patient.email}</p>
+                      <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
+                        {patient.identity_number && <span className="font-mono">{patient.identity_number}</span>}
+                        {patient.phone && <span>{patient.phone}</span>}
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </Link>
+                ))}
+              </div>
+
+              {/* Desktop: tabla */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Cédula</TableHead>
+                      <TableHead>Teléfono</TableHead>
+                      <TableHead>Registrado</TableHead>
+                      <TableHead className="w-10" />
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPatients.map((patient) => (
+                      <TableRow key={patient.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                              {initials(patient.name)}
+                            </div>
+                            <div>
+                              <p className="font-medium">{patient.name}</p>
+                              <p className="text-xs text-muted-foreground">{patient.email}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {patient.identity_number
+                            ? <span className="font-mono text-sm">{patient.identity_number}</span>
+                            : <span className="text-muted-foreground/60 text-sm">—</span>}
+                        </TableCell>
+                        <TableCell className="text-sm">{patient.phone || "—"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(patient.created_at).toLocaleDateString("es-ES")}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" asChild>
+                            <Link href={`/admin/pacientes/${patient.id}`}>
+                              <ChevronRight className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

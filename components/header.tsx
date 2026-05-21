@@ -4,8 +4,9 @@ import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Menu, X, Phone } from "lucide-react"
+import type { ClinicSettings } from "@/lib/settings"
 
-export function Header() {
+export function Header({ clinicSettings }: { clinicSettings: ClinicSettings }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const navItems = [
@@ -32,7 +33,7 @@ export function Header() {
             </svg>
           </div>
           <span className="font-serif text-xl font-semibold text-foreground">
-            DentaCare
+            {clinicSettings.name}
           </span>
         </Link>
 
@@ -50,11 +51,11 @@ export function Header() {
 
         <div className="hidden items-center gap-4 md:flex">
           <a
-            href="tel:+1234567890"
+            href={`tel:${clinicSettings.phone}`}
             className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
           >
             <Phone className="h-4 w-4" />
-            <span>+1 (234) 567-890</span>
+            <span>{clinicSettings.phone}</span>
           </a>
           <Button asChild>
             <Link href="/citas">Reservar Cita</Link>
@@ -84,11 +85,11 @@ export function Header() {
               </Link>
             ))}
             <a
-              href="tel:+1234567890"
+              href={`tel:${clinicSettings.phone}`}
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
             >
               <Phone className="h-4 w-4" />
-              <span>+1 (234) 567-890</span>
+              <span>{clinicSettings.phone}  </span>
             </a>
             <Button asChild className="mt-2">
               <Link href="/citas">Reservar Cita</Link>

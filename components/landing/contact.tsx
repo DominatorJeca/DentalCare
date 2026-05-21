@@ -12,6 +12,11 @@ interface ClinicInfo {
   phone: string
   email: string
   address: string
+  scheduleMfOpen: string
+  scheduleMfClose: string
+  scheduleSatOpen: string
+  scheduleSatClose: string
+  scheduleSunClosed: boolean
 }
 
 export function Contact({ clinicInfo }: { clinicInfo: ClinicInfo }) {
@@ -52,7 +57,7 @@ export function Contact({ clinicInfo }: { clinicInfo: ClinicInfo }) {
       icon: Phone,
       title: "Teléfono",
       content: clinicInfo.phone,
-      href: `tel:${clinicInfo.phone.replace(/\D/g, "")}`,
+      href: `https://wa.me/${clinicInfo.phone.replace(/\D/g, "")}`,
     },
     {
       icon: Mail,
@@ -69,7 +74,7 @@ export function Contact({ clinicInfo }: { clinicInfo: ClinicInfo }) {
     {
       icon: Clock,
       title: "Horario",
-      content: "Lun-Vie: 9:00-19:00",
+      content: `Lun-Vie: ${clinicInfo.scheduleMfOpen}-${clinicInfo.scheduleMfClose}`,
       href: "#",
     },
   ]
@@ -105,6 +110,8 @@ export function Contact({ clinicInfo }: { clinicInfo: ClinicInfo }) {
                     {info.href !== "#" ? (
                       <a
                         href={info.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="text-sm text-muted-foreground transition-colors hover:text-primary"
                       >
                         {info.content}

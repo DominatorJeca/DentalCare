@@ -8,12 +8,14 @@ import { FAQ } from "@/components/landing/faq"
 import { Contact } from "@/components/landing/contact"
 import { getClinicSettings } from "@/lib/settings"
 
+export const dynamic = "force-dynamic"
+
 export default async function Home() {
   const settings = await getClinicSettings()
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
+      <Header clinicSettings={settings} />
       <main className="flex-1">
         <Hero />
         <Services />
@@ -22,7 +24,7 @@ export default async function Home() {
         <FAQ />
         <Contact clinicInfo={settings} />
       </main>
-      <Footer />
+      <Footer settings={settings} />
     </div>
   )
 }

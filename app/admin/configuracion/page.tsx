@@ -30,7 +30,20 @@ export default function ConfiguracionPage() {
     fetch("/api/settings")
       .then((r) => r.json())
       .then(({ settings }) => {
-        if (settings) setClinicInfo(settings)
+        if (settings) {
+          setClinicInfo({
+            name: settings.name,
+            address: settings.address,
+            phone: settings.phone,
+            email: settings.email,
+            description: settings.description,
+          })
+          setSchedule({
+            mondayFriday: { open: settings.scheduleMfOpen, close: settings.scheduleMfClose },
+            saturday: { open: settings.scheduleSatOpen, close: settings.scheduleSatClose },
+            sundayClosed: settings.scheduleSunClosed,
+          })
+        }
       })
       .catch(() => {})
       .finally(() => setIsLoading(false))
@@ -43,6 +56,7 @@ export default function ConfiguracionPage() {
   })
 
   const [notifications, setNotifications] = useState({
+
     emailReminders: true,
     smsReminders: true,
     reminderHours: "24",
@@ -56,7 +70,14 @@ export default function ConfiguracionPage() {
       const res = await fetch("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(clinicInfo),
+        body: JSON.stringify({
+          ...clinicInfo,
+          scheduleMfOpen: schedule.mondayFriday.open,
+          scheduleMfClose: schedule.mondayFriday.close,
+          scheduleSatOpen: schedule.saturday.open,
+          scheduleSatClose: schedule.saturday.close,
+          scheduleSunClosed: schedule.sundayClosed,
+        }),
       })
       if (!res.ok) throw new Error()
       toast({ title: "Configuración guardada", description: "Los cambios se reflejarán en el sitio web" })
