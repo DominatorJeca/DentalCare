@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Save, Plus, RefreshCw, Trash2 } from "lucide-react"
 import {
@@ -33,6 +33,14 @@ export function OdontogramPanel({ patientId, recordId }: OdontogramPanelProps) {
   const [saving, setSaving]         = useState(false)
   const [dirty, setDirty]           = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
+  const [paletteHint, setPaletteHint]   = useState(false)
+  const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function triggerPaletteHint() {
+    if (hintTimer.current) clearTimeout(hintTimer.current)
+    setPaletteHint(true)
+    hintTimer.current = setTimeout(() => setPaletteHint(false), 700)
+  }
 
   const base = `/api/admin/pacientes/${patientId}/evaluations`
 
@@ -169,11 +177,21 @@ export function OdontogramPanel({ patientId, recordId }: OdontogramPanelProps) {
         </div>
 
         {/* Paleta de condiciones + borrador */}
-        <div className="rounded-lg border border-border bg-muted/30 p-3">
-          <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        <div className={`rounded-lg border bg-muted/30 p-3 transition-colors duration-150 ${
+          paletteHint ? "border-primary ring-2 ring-primary/30" : "border-border"
+        }`}>
+          <p className={`mb-2 text-xs font-medium uppercase tracking-wide transition-colors duration-150 ${
+            paletteHint
+              ? "text-primary"
+              : eraseMode
+              ? "text-destructive"
+              : "text-muted-foreground"
+          }`}>
             {eraseMode
               ? "Modo borrador — haz clic en un diente para limpiar sus condiciones"
-              : "Condición activa — haz clic en una superficie del diente"}
+              : paletteHint
+              ? "← Selecciona una condición primero"
+              : "Selecciona una condición y haz clic en una superficie"}
           </p>
           <ConditionPalette
             selected={selectedCondition}
@@ -190,6 +208,7 @@ export function OdontogramPanel({ patientId, recordId }: OdontogramPanelProps) {
             selectedCondition={selectedCondition}
             eraseMode={eraseMode}
             onToothChange={handleToothChange}
+            onNoConditionClick={triggerPaletteHint}
           />
         </div>
 

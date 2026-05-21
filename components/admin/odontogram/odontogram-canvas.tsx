@@ -14,6 +14,7 @@ interface OdontogramCanvasProps {
   selectedCondition: ToothCondition | null
   eraseMode: boolean
   onToothChange: (updated: ToothData) => void
+  onNoConditionClick?: () => void
   toothSize?: number
 }
 
@@ -22,6 +23,7 @@ export function OdontogramCanvas({
   selectedCondition,
   eraseMode,
   onToothChange,
+  onNoConditionClick,
   toothSize = 44,
 }: OdontogramCanvasProps) {
   function getToothData(num: number): ToothData {
@@ -44,7 +46,7 @@ export function OdontogramCanvas({
       return
     }
 
-    if (!selectedCondition) return
+    if (!selectedCondition) { onNoConditionClick?.(); return }
 
     const conditionOpt = CONDITIONS.find((c) => c.condition === selectedCondition)!
     const targetSurface: ToothMark["surface"] = conditionOpt.whole ? "whole" : surface

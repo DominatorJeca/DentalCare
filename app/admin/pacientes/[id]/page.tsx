@@ -906,7 +906,7 @@ export default function PatientDetailPage() {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeletingFile}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-white"
               onClick={handleDeleteFile}
               disabled={isDeletingFile}
             >
