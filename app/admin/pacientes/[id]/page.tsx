@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import {
   Table,
   TableBody,
@@ -49,9 +50,11 @@ import {
   ImageIcon,
   FileIcon,
   ClipboardList,
+  Smile,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import type { Patient, PatientRecord, PatientFile, AppointmentStatus } from "@/types"
+import { OdontogramPanel } from "@/components/admin/odontogram/odontogram-panel"
 
 interface AppointmentRow {
   id: string
@@ -97,8 +100,8 @@ export default function PatientDetailPage() {
   const [editForm, setEditForm] = useState({ name: "", phone: "", identity_number: "" })
   const [isSavingPatient, setIsSavingPatient] = useState(false)
 
-  // Record / notes
-  const [selectedRecord, setSelectedRecord] = useState<PatientRecord | null>(null)
+  // Consultas
+  const [openRecord, setOpenRecord]         = useState<PatientRecord | null>(null)
   const [notes, setNotes]                   = useState("")
   const [isSavingNotes, setIsSavingNotes]   = useState(false)
   const [isCreatingRecord, setIsCreatingRecord] = useState(false)
@@ -132,10 +135,6 @@ export default function PatientDetailPage() {
       setRecords(detail.records)
       setAppointments(detail.appointments)
       setFiles(filesData.files ?? [])
-
-      const latest = detail.records[0] ?? null
-      setSelectedRecord(latest)
-      setNotes(latest?.notes ?? "")
     } catch {
       toast({ title: "Error", description: "No se pudo cargar la ficha del paciente", variant: "destructive" })
     } finally {
@@ -205,7 +204,7 @@ export default function PatientDetailPage() {
       }
       const newRecord = data.record as PatientRecord
       setRecords((prev) => [newRecord, ...prev])
-      setSelectedRecord(newRecord)
+      setOpenRecord(newRecord)
       setNotes("")
     } catch {
       toast({ title: "Error al crear ficha", variant: "destructive" })
@@ -215,10 +214,10 @@ export default function PatientDetailPage() {
   }
 
   const handleSaveNotes = async () => {
-    if (!selectedRecord) return
+    if (!openRecord) return
     setIsSavingNotes(true)
     try {
-      const res = await fetch(`/api/admin/pacientes/${id}/records/${selectedRecord.id}`, {
+      const res = await fetch(`/api/admin/pacientes/${id}/records/${openRecord.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notes }),
@@ -230,7 +229,7 @@ export default function PatientDetailPage() {
       }
       const updated = data.record as PatientRecord
       setRecords((prev) => prev.map((r) => r.id === updated.id ? updated : r))
-      setSelectedRecord(updated)
+      setOpenRecord(updated)
       toast({ title: "Notas guardadas" })
     } catch {
       toast({ title: "Error al guardar notas", variant: "destructive" })
@@ -342,21 +341,21 @@ export default function PatientDetailPage() {
       {/* Patient info card */}
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
                 {initials(patient.name)}
               </div>
-              <div>
-                <CardTitle className="text-lg">{patient.name}</CardTitle>
-                <CardDescription className="flex items-center gap-1 mt-0.5">
-                  <Mail className="h-3.5 w-3.5" />
+              <div className="min-w-0">
+                <CardTitle className="text-lg truncate">{patient.name}</CardTitle>
+                <CardDescription className="flex items-center gap-1 mt-0.5 truncate">
+                  <Mail className="h-3.5 w-3.5 shrink-0" />
                   {patient.email}
                 </CardDescription>
               </div>
             </div>
             {!isEditingPatient && (
-              <Button variant="outline" size="sm" onClick={startEditPatient}>
+              <Button variant="outline" size="sm" className="self-start shrink-0" onClick={startEditPatient}>
                 <Pencil className="mr-2 h-3.5 w-3.5" />
                 Editar
               </Button>
@@ -438,6 +437,11 @@ export default function PatientDetailPage() {
           <TabsTrigger value="ficha" className="flex items-center gap-2">
             <ClipboardList className="h-4 w-4" />
             Ficha Clínica
+            {records.length > 0 && (
+              <Badge variant="secondary" className="h-5 min-w-5 rounded-full px-1 text-[10px]">
+                {records.length}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="archivos" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -470,68 +474,100 @@ export default function PatientDetailPage() {
                 const totalAptPages = Math.ceil(appointments.length / APT_PAGE_SIZE)
                 const paged = appointments.slice((aptPage - 1) * APT_PAGE_SIZE, aptPage * APT_PAGE_SIZE)
                 return (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Fecha</TableHead>
-                          <TableHead>Hora</TableHead>
-                          <TableHead>Servicio</TableHead>
-                          <TableHead>Doctor</TableHead>
-                          <TableHead>Estado</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {paged.map((apt) => (
-                          <TableRow key={apt.id}>
-                            <TableCell>
-                              {new Date(`${apt.appointment_date}T12:00:00`).toLocaleDateString("es-ES")}
-                            </TableCell>
-                            <TableCell>{apt.appointment_time}</TableCell>
-                            <TableCell>{apt.service}</TableCell>
-                            <TableCell>{apt.doctor}</TableCell>
-                            <TableCell>
-                              <Badge variant={statusConfig[apt.status]?.variant ?? "secondary"}>
-                                {statusConfig[apt.status]?.label ?? apt.status}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
+                  <>
+                    {/* Mobile: tarjetas */}
+                    <div className="sm:hidden space-y-3">
+                      {paged.map((apt) => (
+                        <div key={apt.id} className="rounded-lg border border-border bg-background p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">{apt.service}</p>
+                              <p className="text-xs text-muted-foreground truncate">{apt.doctor}</p>
+                            </div>
+                            <Badge variant={statusConfig[apt.status]?.variant ?? "secondary"} className="shrink-0">
+                              {statusConfig[apt.status]?.label ?? apt.status}
+                            </Badge>
+                          </div>
+                          <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3 shrink-0" />
+                            <span>{new Date(`${apt.appointment_date}T12:00:00`).toLocaleDateString("es-ES")}</span>
+                            <span className="mx-0.5">·</span>
+                            <span>{apt.appointment_time}</span>
+                          </div>
+                        </div>
+                      ))}
                       {totalAptPages > 1 && (
-                        <TableFooter>
-                          <TableRow>
-                            <TableCell colSpan={5}>
-                              <div className="flex items-center justify-between py-1">
-                                <p className="text-xs text-muted-foreground">
-                                  {(aptPage - 1) * APT_PAGE_SIZE + 1}–{Math.min(aptPage * APT_PAGE_SIZE, appointments.length)} de {appointments.length}
-                                </p>
-                                <div className="flex items-center gap-1">
-                                  <Button
-                                    variant="outline" size="icon" className="h-7 w-7"
-                                    onClick={() => setAptPage((p) => p - 1)}
-                                    disabled={aptPage === 1}
-                                  >
-                                    <ChevronLeft className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <span className="px-2 text-xs">
-                                    {aptPage} / {totalAptPages}
-                                  </span>
-                                  <Button
-                                    variant="outline" size="icon" className="h-7 w-7"
-                                    onClick={() => setAptPage((p) => p + 1)}
-                                    disabled={aptPage === totalAptPages}
-                                  >
-                                    <ChevronRight className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        </TableFooter>
+                        <div className="flex items-center justify-between pt-2">
+                          <p className="text-xs text-muted-foreground">
+                            {(aptPage - 1) * APT_PAGE_SIZE + 1}–{Math.min(aptPage * APT_PAGE_SIZE, appointments.length)} de {appointments.length}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setAptPage((p) => p - 1)} disabled={aptPage === 1}>
+                              <ChevronLeft className="h-3.5 w-3.5" />
+                            </Button>
+                            <span className="px-2 text-xs">{aptPage} / {totalAptPages}</span>
+                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setAptPage((p) => p + 1)} disabled={aptPage === totalAptPages}>
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
                       )}
-                    </Table>
-                  </div>
+                    </div>
+
+                    {/* Desktop: tabla */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Fecha</TableHead>
+                            <TableHead>Hora</TableHead>
+                            <TableHead>Servicio</TableHead>
+                            <TableHead>Doctor</TableHead>
+                            <TableHead>Estado</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paged.map((apt) => (
+                            <TableRow key={apt.id}>
+                              <TableCell>
+                                {new Date(`${apt.appointment_date}T12:00:00`).toLocaleDateString("es-ES")}
+                              </TableCell>
+                              <TableCell>{apt.appointment_time}</TableCell>
+                              <TableCell>{apt.service}</TableCell>
+                              <TableCell>{apt.doctor}</TableCell>
+                              <TableCell>
+                                <Badge variant={statusConfig[apt.status]?.variant ?? "secondary"}>
+                                  {statusConfig[apt.status]?.label ?? apt.status}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                        {totalAptPages > 1 && (
+                          <TableFooter>
+                            <TableRow>
+                              <TableCell colSpan={5}>
+                                <div className="flex items-center justify-between py-1">
+                                  <p className="text-xs text-muted-foreground">
+                                    {(aptPage - 1) * APT_PAGE_SIZE + 1}–{Math.min(aptPage * APT_PAGE_SIZE, appointments.length)} de {appointments.length}
+                                  </p>
+                                  <div className="flex items-center gap-1">
+                                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setAptPage((p) => p - 1)} disabled={aptPage === 1}>
+                                      <ChevronLeft className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <span className="px-2 text-xs">{aptPage} / {totalAptPages}</span>
+                                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setAptPage((p) => p + 1)} disabled={aptPage === totalAptPages}>
+                                      <ChevronRight className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          </TableFooter>
+                        )}
+                      </Table>
+                    </div>
+                  </>
                 )
               })()}
             </CardContent>
@@ -540,92 +576,188 @@ export default function PatientDetailPage() {
 
         {/* ── Tab: Ficha Clínica ───────────────────────────────────── */}
         <TabsContent value="ficha" className="mt-4 space-y-4">
-          {records.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-14 text-center">
-                <ClipboardList className="h-12 w-12 text-muted-foreground/50" />
-                <p className="mt-4 text-lg font-medium">Sin ficha clínica</p>
-                <p className="text-sm text-muted-foreground">Crea la primera ficha para registrar notas clínicas</p>
-                <Button className="mt-4" onClick={handleCreateRecord} disabled={isCreatingRecord}>
-                  {isCreatingRecord
-                    ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    : <FilePlus className="mr-2 h-4 w-4" />}
-                  Crear primera ficha
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {/* Record selector + new record */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {records.map((r, i) => (
+          {/* ── Vista detalle de una consulta ── */}
+          {openRecord ? (() => {
+            const recIdx = records.findIndex((r) => r.id === openRecord.id)
+            const consultaNum = records.length - recIdx
+            return (
+              <div className="space-y-4">
+                {/* Header de la consulta */}
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
                     <Button
-                      key={r.id}
-                      variant={selectedRecord?.id === r.id ? "default" : "outline"}
+                      variant="ghost"
                       size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => { setSelectedRecord(r); setNotes(r.notes) }}
+                      className="gap-1 pl-1"
+                      onClick={() => setOpenRecord(null)}
                     >
-                      Consulta {records.length - i}
-                      <span className="ml-1.5 text-[10px] opacity-70">
-                        {new Date(r.created_at).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
-                      </span>
+                      <ChevronLeft className="h-4 w-4" />
+                      Consultas
                     </Button>
-                  ))}
-                </div>
-                <Button variant="outline" size="sm" onClick={handleCreateRecord} disabled={isCreatingRecord}>
-                  {isCreatingRecord
-                    ? <RefreshCw className="mr-2 h-3.5 w-3.5 animate-spin" />
-                    : <FilePlus className="mr-2 h-3.5 w-3.5" />}
-                  Nueva consulta
-                </Button>
-              </div>
-
-              {selectedRecord && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">Notas clínicas</CardTitle>
-                      <p className="text-xs text-muted-foreground">
-                        Actualizado {new Date(selectedRecord.updated_at).toLocaleDateString("es-ES", {
-                          day: "numeric", month: "long", year: "numeric"
+                    <Separator orientation="vertical" className="h-5" />
+                    <div>
+                      <span className="font-semibold">Consulta {consultaNum}</span>
+                      <span className="ml-2 text-sm text-muted-foreground">
+                        {new Date(openRecord.created_at).toLocaleDateString("es-ES", {
+                          weekday: "long", day: "numeric", month: "long", year: "numeric",
                         })}
-                      </p>
+                      </span>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Textarea
-                      placeholder="Escribe las notas de la consulta aquí..."
-                      className="min-h-40 resize-none"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                    />
-                    <div className="flex justify-end">
-                      <Button onClick={handleSaveNotes} disabled={isSavingNotes}>
-                        {isSavingNotes
-                          ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          : <Save className="mr-2 h-4 w-4" />}
-                        Guardar notas
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                  </div>
+                </div>
 
-              {/* Odontogram placeholder */}
+                <Accordion
+                  type="multiple"
+                  defaultValue={["notas", "odontograma"]}
+                  className="rounded-lg border border-border bg-card divide-y divide-border overflow-hidden"
+                >
+                  {/* Notas clínicas */}
+                  <AccordionItem value="notas" className="border-0">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/40">
+                      <span className="flex items-center gap-2 text-sm font-medium">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        Notas clínicas
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <div className="space-y-3 pt-1">
+                        <Textarea
+                          placeholder="Escribe las notas de la consulta aquí..."
+                          className="min-h-36 resize-none"
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                        />
+                        <div className="flex justify-end">
+                          <Button onClick={handleSaveNotes} disabled={isSavingNotes}>
+                            {isSavingNotes
+                              ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                              : <Save className="mr-2 h-4 w-4" />}
+                            Guardar notas
+                          </Button>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Odontograma */}
+                  <AccordionItem value="odontograma" className="border-0">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/40">
+                      <span className="flex items-center gap-2 text-sm font-medium">
+                        <Smile className="h-4 w-4 text-muted-foreground" />
+                        Odontograma
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <OdontogramPanel patientId={id} recordId={openRecord.id} />
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </div>
+            )
+          })() : (
+          /* ── Lista de consultas ── */
+          <>
+            {records.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-14 text-center">
+                  <ClipboardList className="h-12 w-12 text-muted-foreground/50" />
+                  <p className="mt-4 text-lg font-medium">Sin consultas registradas</p>
+                  <p className="text-sm text-muted-foreground">Crea la primera consulta para comenzar</p>
+                  <Button className="mt-4" onClick={handleCreateRecord} disabled={isCreatingRecord}>
+                    {isCreatingRecord
+                      ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      : <FilePlus className="mr-2 h-4 w-4" />}
+                    Nueva consulta
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Odontograma</CardTitle>
-                  <CardDescription>Mapa dental interactivo del paciente</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Consultas</CardTitle>
+                    <Button variant="outline" size="sm" onClick={handleCreateRecord} disabled={isCreatingRecord}>
+                      {isCreatingRecord
+                        ? <RefreshCw className="mr-2 h-3.5 w-3.5 animate-spin" />
+                        : <FilePlus className="mr-2 h-3.5 w-3.5" />}
+                      Nueva consulta
+                    </Button>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-border py-14 text-muted-foreground">
-                    Odontograma SVG — Paso 5
+                <CardContent className="p-0">
+                  {/* Mobile: tarjetas */}
+                  <div className="sm:hidden divide-y divide-border">
+                    {records.map((r, i) => (
+                      <button
+                        key={r.id}
+                        className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors"
+                        onClick={() => { setOpenRecord(r); setNotes(r.notes) }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium text-sm">Consulta {records.length - i}</span>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {new Date(r.created_at).toLocaleDateString("es-ES", {
+                            day: "numeric", month: "long", year: "numeric",
+                          })}
+                        </p>
+                        {r.notes && (
+                          <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{r.notes}</p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Desktop: tabla */}
+                  <div className="hidden sm:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-20">#</TableHead>
+                          <TableHead>Fecha</TableHead>
+                          <TableHead>Última actualización</TableHead>
+                          <TableHead>Notas</TableHead>
+                          <TableHead className="w-24" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {records.map((r, i) => (
+                          <TableRow
+                            key={r.id}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => { setOpenRecord(r); setNotes(r.notes) }}
+                          >
+                            <TableCell className="font-medium">
+                              Consulta {records.length - i}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(r.created_at).toLocaleDateString("es-ES", {
+                                day: "numeric", month: "short", year: "numeric",
+                              })}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {new Date(r.updated_at).toLocaleDateString("es-ES", {
+                                day: "numeric", month: "short", year: "numeric",
+                              })}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm max-w-xs">
+                              <span className="line-clamp-1">{r.notes || "—"}</span>
+                            </TableCell>
+                            <TableCell>
+                              <Button variant="ghost" size="sm" className="gap-1">
+                                Abrir <ChevronRight className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
                 </CardContent>
               </Card>
-            </>
+            )}
+          </>
           )}
         </TabsContent>
 

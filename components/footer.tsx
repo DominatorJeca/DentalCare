@@ -1,8 +1,9 @@
 import Link from "next/link"
 import { Phone, Mail, MapPin, Clock } from "lucide-react"
+import { DEFAULTS } from "@/lib/settings"
 import type { ClinicSettings } from "@/lib/settings"
 
-export function Footer({ settings }: { settings: ClinicSettings }) {
+export function Footer({ settings = DEFAULTS }: { settings?: ClinicSettings }) {
   return (
     <footer className="border-t border-border bg-card">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">

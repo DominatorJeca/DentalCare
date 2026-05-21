@@ -1,8 +1,10 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, ArrowRight } from "lucide-react"
+import { getClinicSettings } from "@/lib/settings"
 
-export function Hero() {
+export async function Hero() {
+  const clinicSettings = await getClinicSettings()
   const benefits = [
     "Profesionales certificados",
     "Tecnología de vanguardia",
@@ -29,7 +31,7 @@ export function Hero() {
             </h1>
 
             <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
-              En DentaCare combinamos la última tecnología con un equipo de
+              En {clinicSettings.name} combinamos la última tecnología con un equipo de
               especialistas dedicados a brindarte la mejor experiencia dental.
               Tu bienestar es nuestra prioridad.
             </p>

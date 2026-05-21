@@ -4,9 +4,10 @@ import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Menu, X, Phone } from "lucide-react"
+import { DEFAULTS } from "@/lib/settings"
 import type { ClinicSettings } from "@/lib/settings"
 
-export function Header({ clinicSettings }: { clinicSettings: ClinicSettings }) {
+export function Header({ clinicSettings = DEFAULTS }: { clinicSettings?: ClinicSettings }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const navItems = [
@@ -51,7 +52,9 @@ export function Header({ clinicSettings }: { clinicSettings: ClinicSettings }) {
 
         <div className="hidden items-center gap-4 md:flex">
           <a
-            href={`tel:${clinicSettings.phone}`}
+            href={`https://wa.me/${clinicSettings.phone.replace(/\D/g, "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
           >
             <Phone className="h-4 w-4" />
@@ -85,11 +88,13 @@ export function Header({ clinicSettings }: { clinicSettings: ClinicSettings }) {
               </Link>
             ))}
             <a
-              href={`tel:${clinicSettings.phone}`}
+              href={`https://wa.me/${clinicSettings.phone.replace(/\D/g, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
             >
-              <Phone className="h-4 w-4" />
-              <span>{clinicSettings.phone}  </span>
+              <Phone className="h-4 w-4 shrink-0" />
+              <span>{clinicSettings.phone}</span>
             </a>
             <Button asChild className="mt-2">
               <Link href="/citas">Reservar Cita</Link>

@@ -13,7 +13,7 @@ export interface ClinicSettings {
   scheduleSunClosed: boolean
 }
 
-const DEFAULTS: ClinicSettings = {
+export const DEFAULTS: ClinicSettings = {
   name: "DentaCare",
   phone: "+1 (234) 567-890",
   email: "info@dentacare.com",
