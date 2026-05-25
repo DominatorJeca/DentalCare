@@ -3,7 +3,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { RefreshCw } from "lucide-react"
 import { getClinicSettings } from "@/lib/settings"
-import { CancelarContent } from "./cancelar-content"
+import { CancelarContent } from "@/components/citas/cancelar-content"
 
 export default async function CancelarCitaPage() {
   const settings = await getClinicSettings()

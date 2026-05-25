@@ -1,17 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/service"
+import type { ClinicSettings } from "@/types/settings"
 
-export interface ClinicSettings {
-  name: string
-  phone: string
-  email: string
-  address: string
-  description: string
-  scheduleMfOpen: string
-  scheduleMfClose: string
-  scheduleSatOpen: string
-  scheduleSatClose: string
-  scheduleSunClosed: boolean
-}
+export type { ClinicSettings }
 
 export const DEFAULTS: ClinicSettings = {
   name: "DentaCare",

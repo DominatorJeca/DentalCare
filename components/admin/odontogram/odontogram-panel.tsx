@@ -16,7 +16,7 @@ import {
 import { ConditionPalette } from "./condition-palette"
 import { OdontogramCanvas } from "./odontogram-canvas"
 import type { DentalEvaluation, ToothCondition, ToothData } from "@/types"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 
 interface OdontogramPanelProps {
   patientId: string

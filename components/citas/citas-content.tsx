@@ -19,7 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Calendar } from "@/components/ui/calendar"
 import { CalendarDays, Clock, User, Check } from "lucide-react"
 import type { Service, Doctor } from "@/types"
-import type { ClinicSettings } from "@/lib/settings"
+import type { ClinicSettings } from "@/types"
 
 function CitasInner({ settings }: { settings: ClinicSettings }) {
   const searchParams = useSearchParams()

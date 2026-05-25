@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { jwtVerify } from "jose"
+import { COOKIE_NAME } from "@/lib/auth"
 
 const SECRET = new TextEncoder().encode(process.env.JWT_SECRET!)
-const COOKIE_NAME = "admin_session"
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
