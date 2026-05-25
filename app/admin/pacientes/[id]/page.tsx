@@ -55,6 +55,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import type { Patient, PatientRecord, PatientFile, AppointmentStatus } from "@/types"
 import { OdontogramPanel } from "@/components/admin/odontogram/odontogram-panel"
+import { NewAppointmentModal } from "@/components/admin/new-appointment-modal"
 
 interface AppointmentRow {
   id: string
@@ -109,6 +110,13 @@ export default function PatientDetailPage() {
   // Appointment pagination
   const [aptPage, setAptPage] = useState(1)
   const APT_PAGE_SIZE = 5
+
+  // New appointment
+  const [showNewAppointment, setShowNewAppointment] = useState(false)
+
+  // Record delete
+  const [recordToDelete, setRecordToDelete]     = useState<PatientRecord | null>(null)
+  const [isDeletingRecord, setIsDeletingRecord] = useState(false)
 
   // Files
   const fileInputRef                      = useRef<HTMLInputElement>(null)
@@ -235,6 +243,31 @@ export default function PatientDetailPage() {
       toast({ title: "Error al guardar notas", variant: "destructive" })
     } finally {
       setIsSavingNotes(false)
+    }
+  }
+
+  // ─── Record delete ───────────────────────────────────────────────────────
+
+  const handleDeleteRecord = async () => {
+    if (!recordToDelete) return
+    setIsDeletingRecord(true)
+    try {
+      const res = await fetch(`/api/admin/pacientes/${id}/records/${recordToDelete.id}`, {
+        method: "DELETE",
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        toast({ title: "Error", description: data.error, variant: "destructive" })
+        return
+      }
+      setRecords((prev) => prev.filter((r) => r.id !== recordToDelete.id))
+      if (openRecord?.id === recordToDelete.id) setOpenRecord(null)
+      toast({ title: "Consulta eliminada" })
+    } catch {
+      toast({ title: "Error al eliminar", variant: "destructive" })
+    } finally {
+      setIsDeletingRecord(false)
+      setRecordToDelete(null)
     }
   }
 
@@ -458,10 +491,18 @@ export default function PatientDetailPage() {
         <TabsContent value="resumen" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Historial de Citas</CardTitle>
-              <CardDescription>
-                {appointments.length} cita{appointments.length !== 1 ? "s" : ""} registrada{appointments.length !== 1 ? "s" : ""}
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Historial de Citas</CardTitle>
+                  <CardDescription>
+                    {appointments.length} cita{appointments.length !== 1 ? "s" : ""} registrada{appointments.length !== 1 ? "s" : ""}
+                  </CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowNewAppointment(true)}>
+                  <FilePlus className="mr-2 h-3.5 w-3.5" />
+                  Nueva cita
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {appointments.length === 0 ? (
@@ -604,6 +645,15 @@ export default function PatientDetailPage() {
                       </span>
                     </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="self-start text-destructive hover:text-destructive sm:self-auto"
+                    onClick={() => setRecordToDelete(openRecord)}
+                  >
+                    <Trash2 className="mr-2 h-3.5 w-3.5" />
+                    Eliminar consulta
+                  </Button>
                 </div>
 
                 <Accordion
@@ -688,24 +738,33 @@ export default function PatientDetailPage() {
                   {/* Mobile: tarjetas */}
                   <div className="sm:hidden divide-y divide-border">
                     {records.map((r, i) => (
-                      <button
-                        key={r.id}
-                        className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors"
-                        onClick={() => { setOpenRecord(r); setNotes(r.notes) }}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-medium text-sm">Consulta {records.length - i}</span>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {new Date(r.created_at).toLocaleDateString("es-ES", {
-                            day: "numeric", month: "long", year: "numeric",
-                          })}
-                        </p>
-                        {r.notes && (
-                          <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{r.notes}</p>
-                        )}
-                      </button>
+                      <div key={r.id} className="flex items-center gap-2 px-4 py-3 hover:bg-muted/50 transition-colors">
+                        <button
+                          className="flex-1 text-left min-w-0"
+                          onClick={() => { setOpenRecord(r); setNotes(r.notes) }}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium text-sm">Consulta {records.length - i}</span>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {new Date(r.created_at).toLocaleDateString("es-ES", {
+                              day: "numeric", month: "long", year: "numeric",
+                            })}
+                          </p>
+                          {r.notes && (
+                            <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{r.notes}</p>
+                          )}
+                        </button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => setRecordToDelete(r)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     ))}
                   </div>
 
@@ -745,9 +804,19 @@ export default function PatientDetailPage() {
                               <span className="line-clamp-1">{r.notes || "—"}</span>
                             </TableCell>
                             <TableCell>
-                              <Button variant="ghost" size="sm" className="gap-1">
-                                Abrir <ChevronRight className="h-3.5 w-3.5" />
-                              </Button>
+                              <div className="flex items-center gap-1">
+                                <Button variant="ghost" size="sm" className="gap-1">
+                                  Abrir <ChevronRight className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                  onClick={(e) => { e.stopPropagation(); setRecordToDelete(r) }}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -893,6 +962,43 @@ export default function PatientDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* New appointment */}
+      {patient && (
+        <NewAppointmentModal
+          open={showNewAppointment}
+          onClose={() => setShowNewAppointment(false)}
+          onSuccess={() => {
+            setShowNewAppointment(false)
+            fetchPatient()
+            toast({ title: "Cita creada", description: `Se agendó una cita para ${patient.name}` })
+          }}
+          initialPatient={{ name: patient.name, email: patient.email, phone: patient.phone }}
+        />
+      )}
+
+      {/* Delete record confirmation */}
+      <AlertDialog open={!!recordToDelete} onOpenChange={(open) => !open && setRecordToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar consulta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará permanentemente esta consulta, incluyendo sus notas y odontograma. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingRecord}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-white"
+              onClick={handleDeleteRecord}
+              disabled={isDeletingRecord}
+            >
+              {isDeletingRecord ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete file confirmation */}
       <AlertDialog open={!!fileToDelete} onOpenChange={(open) => !open && setFileToDelete(null)}>

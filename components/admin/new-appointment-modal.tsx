@@ -27,6 +27,7 @@ interface NewAppointmentModalProps {
   open: boolean
   onClose: () => void
   onSuccess: () => void
+  initialPatient?: { name: string; email: string; phone: string }
 }
 
 const EMPTY_FORM = {
@@ -40,7 +41,7 @@ const EMPTY_FORM = {
   notes: "",
 }
 
-export function NewAppointmentModal({ open, onClose, onSuccess }: NewAppointmentModalProps) {
+export function NewAppointmentModal({ open, onClose, onSuccess, initialPatient }: NewAppointmentModalProps) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [services, setServices] = useState<Service[]>([])
   const [doctors, setDoctors] = useState<Doctor[]>([])
@@ -63,16 +64,20 @@ export function NewAppointmentModal({ open, onClose, onSuccess }: NewAppointment
       .finally(() => setLoadingServices(false))
   }, [open])
 
-  // Reset al cerrar
+  // Reset / inicializar al abrir o cerrar
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      if (initialPatient) {
+        setForm({ ...EMPTY_FORM, name: initialPatient.name, email: initialPatient.email, phone: initialPatient.phone })
+      }
+    } else {
       setForm(EMPTY_FORM)
       setDoctors([])
       setAllSlots([])
       setUnavailableSlots([])
       setError(null)
     }
-  }, [open])
+  }, [open, initialPatient])
 
   // Doctores según servicio seleccionado
   useEffect(() => {
@@ -160,7 +165,9 @@ export function NewAppointmentModal({ open, onClose, onSuccess }: NewAppointment
         <DialogHeader>
           <DialogTitle>Nueva Cita</DialogTitle>
           <DialogDescription>
-            Completa los datos para agendar una cita manualmente.
+            {initialPatient
+              ? `Agenda una cita para ${initialPatient.name}.`
+              : "Completa los datos para agendar una cita manualmente."}
           </DialogDescription>
         </DialogHeader>
 
@@ -285,38 +292,48 @@ export function NewAppointmentModal({ open, onClose, onSuccess }: NewAppointment
             <p className="text-sm font-medium text-foreground">Datos del paciente</p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="appt-name">Nombre completo</Label>
-              <Input
-                id="appt-name"
-                placeholder="Nombre del paciente"
-                value={form.name}
-                onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-              />
+          {initialPatient ? (
+            <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 space-y-0.5 text-sm">
+              <p className="font-medium">{initialPatient.name}</p>
+              <p className="text-muted-foreground">{initialPatient.email}</p>
+              {initialPatient.phone && <p className="text-muted-foreground">{initialPatient.phone}</p>}
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="appt-phone">Teléfono</Label>
-              <Input
-                id="appt-phone"
-                type="tel"
-                placeholder="+1 234 567 890"
-                value={form.phone}
-                onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
-              />
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="appt-name">Nombre completo</Label>
+                  <Input
+                    id="appt-name"
+                    placeholder="Nombre del paciente"
+                    value={form.name}
+                    onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="appt-phone">Teléfono</Label>
+                  <Input
+                    id="appt-phone"
+                    type="tel"
+                    placeholder="+1 234 567 890"
+                    value={form.phone}
+                    onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+                  />
+                </div>
+              </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="appt-email">Email</Label>
-            <Input
-              id="appt-email"
-              type="email"
-              placeholder="paciente@email.com"
-              value={form.email}
-              onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-            />
-          </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="appt-email">Email</Label>
+                <Input
+                  id="appt-email"
+                  type="email"
+                  placeholder="paciente@email.com"
+                  value={form.email}
+                  onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+            </>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="appt-notes">Notas (opcional)</Label>

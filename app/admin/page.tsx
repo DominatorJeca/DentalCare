@@ -24,9 +24,11 @@ function formatRelativeDate(dateStr: string): string {
   const date = new Date(`${dateStr}T12:00:00`)
   date.setHours(0, 0, 0, 0)
   const diffDays = Math.round((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
-  if (diffDays === 0) return "Hoy"
-  if (diffDays === 1) return "Ayer"
-  if (diffDays <= 7) return `Hace ${diffDays} días`
+  if (diffDays === 0)  return "Hoy"
+  if (diffDays === 1)  return "Ayer"
+  if (diffDays === -1) return "Mañana"
+  if (diffDays > 0 && diffDays <= 7)  return `Hace ${diffDays} días`
+  if (diffDays < 0 && diffDays >= -7) return `En ${Math.abs(diffDays)} días`
   return new Date(`${dateStr}T12:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "short" })
 }
 
