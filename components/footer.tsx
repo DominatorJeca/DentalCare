@@ -1,7 +1,9 @@
 import Link from "next/link"
 import { Phone, Mail, MapPin, Clock } from "lucide-react"
+import { DEFAULTS } from "@/lib/settings"
+import type { ClinicSettings } from "@/lib/settings"
 
-export function Footer() {
+export function Footer({ settings = DEFAULTS }: { settings?: ClinicSettings }) {
   return (
     <footer className="border-t border-border bg-card">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -20,7 +22,7 @@ export function Footer() {
                 </svg>
               </div>
               <span className="font-serif text-xl font-semibold text-foreground">
-                DentaCare
+                {settings.name}
               </span>
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
@@ -74,32 +76,35 @@ export function Footer() {
               <li className="flex items-start gap-3">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <span className="text-sm text-muted-foreground">
-                  Av. Principal 123, Ciudad
+                  {settings.address}
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="h-4 w-4 shrink-0 text-primary" />
                 <a
-                  href="tel:+1234567890"
+                  href={`https://wa.me/${settings.phone.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-sm text-muted-foreground transition-colors hover:text-primary"
                 >
-                  +1 (234) 567-890
+                  {settings.phone}
                 </a>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="h-4 w-4 shrink-0 text-primary" />
                 <a
-                  href="mailto:info@dentacare.com"
+                  href={`mailto:${settings.email}`}
                   className="text-sm text-muted-foreground transition-colors hover:text-primary"
                 >
-                  info@dentacare.com
+                  {settings.email}
                 </a>
               </li>
               <li className="flex items-start gap-3">
                 <Clock className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <div className="text-sm text-muted-foreground">
-                  <p>Lun - Vie: 9:00 - 19:00</p>
-                  <p>Sáb: 9:00 - 14:00</p>
+                  <p>Lun - Vie: {settings.scheduleMfOpen} - {settings.scheduleMfClose}</p>
+                  <p>Sáb: {settings.scheduleSatOpen} - {settings.scheduleSatClose}</p>
+                  {settings.scheduleSunClosed && <p>Dom: Cerrado</p>}
                 </div>
               </li>
             </ul>
@@ -108,7 +113,7 @@ export function Footer() {
 
         <div className="mt-12 border-t border-border pt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} DentaCare. Todos los derechos
+            &copy; {new Date().getFullYear()} {settings.name}. Todos los derechos
             reservados.
           </p>
         </div>

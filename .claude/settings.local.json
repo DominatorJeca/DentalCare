@@ -14,7 +14,11 @@
       "Bash(Get-ChildItem -Recurse -Filter \"*cita*\" -ErrorAction SilentlyContinue)",
       "Bash(xargs grep -l \"form\\\\|booking\\\\|appointment\\\\|cita\\\\|schedule\")",
       "Bash(Get-ChildItem *)",
-      "PowerShell(ls -Path \"D:\\\\Proyectos Personales\\\\DentalCare\\\\DentalCare\" | Where-Object {$_.PSIsContainer})"
+      "PowerShell(ls -Path \"D:\\\\Proyectos Personales\\\\DentalCare\\\\DentalCare\" | Where-Object {$_.PSIsContainer})",
+      "Bash(Select-Object Name)",
+      "WebFetch(domain:cdn.prod.website-files.com)",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\Proyectos Personales\\\\DentalCare\\\\DentalCare\" -Recurse -Exclude \"node_modules\" -File | Select-Object FullName | ForEach-Object { $_.FullName -replace [regex]::Escape\\(\"D:\\\\Proyectos Personales\\\\DentalCare\\\\DentalCare\"\\), \".\" } | Sort-Object)",
+      "Bash(grep -v \"^\\\\.\\\\.$\")"
     ]
   }
 }

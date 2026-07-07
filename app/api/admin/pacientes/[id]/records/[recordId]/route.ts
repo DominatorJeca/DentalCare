@@ -2,6 +2,55 @@ import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import type { OdontogramState } from "@/types"
 
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string; recordId: string }> }
+) {
+  try {
+    const { id, recordId } = await params
+    const supabase = await createClient()
+
+    const { data: record } = await supabase
+      .from("patient_records")
+      .select("id")
+      .eq("id", recordId)
+      .eq("patient_id", id)
+      .single()
+
+    if (!record) {
+      return NextResponse.json({ error: "Ficha no encontrada" }, { status: 404 })
+    }
+
+    // Obtener evaluaciones del record para borrar tooth_data en cascada
+    const { data: evaluations } = await supabase
+      .from("dental_evaluations")
+      .select("id")
+      .eq("record_id", recordId)
+
+    if (evaluations && evaluations.length > 0) {
+      const evalIds = evaluations.map((e) => e.id)
+      await supabase.from("tooth_data").delete().in("evaluation_id", evalIds)
+      await supabase.from("dental_evaluations").delete().eq("record_id", recordId)
+    }
+
+    const { error } = await supabase
+      .from("patient_records")
+      .delete()
+      .eq("id", recordId)
+      .eq("patient_id", id)
+
+    if (error) {
+      console.error("Error al eliminar ficha:", error)
+      return NextResponse.json({ error: "Error al eliminar la ficha" }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error en DELETE /pacientes/[id]/records/[recordId]:", error)
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+  }
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string; recordId: string }> }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,17 +8,46 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Building2, Clock, Bell, Save } from "lucide-react"
+import { Building2, Clock, Bell, Save, RefreshCw, Stethoscope, MessageCircleQuestion } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { ServiciosTab } from "@/components/admin/servicios-tab"
+import { FAQsTab } from "@/components/admin/faqs-tab"
 
 export default function ConfiguracionPage() {
+  const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+
   const [clinicInfo, setClinicInfo] = useState({
-    name: "DentaCare",
-    address: "Av. Principal 123, Ciudad",
-    phone: "+1 (234) 567-890",
-    email: "info@dentacare.com",
-    description:
-      "Clínica dental profesional con los mejores especialistas. Ofrecemos tratamientos de ortodoncia, implantes, blanqueamiento y más.",
+    name: "",
+    address: "",
+    phone: "",
+    email: "",
+    description: "",
   })
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then(({ settings }) => {
+        if (settings) {
+          setClinicInfo({
+            name: settings.name,
+            address: settings.address,
+            phone: settings.phone,
+            email: settings.email,
+            description: settings.description,
+          })
+          setSchedule({
+            mondayFriday: { open: settings.scheduleMfOpen, close: settings.scheduleMfClose },
+            saturday: { open: settings.scheduleSatOpen, close: settings.scheduleSatClose },
+            sundayClosed: settings.scheduleSunClosed,
+          })
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false))
+  }, [])
 
   const [schedule, setSchedule] = useState({
     mondayFriday: { open: "09:00", close: "19:00" },
@@ -27,6 +56,7 @@ export default function ConfiguracionPage() {
   })
 
   const [notifications, setNotifications] = useState({
+
     emailReminders: true,
     smsReminders: true,
     reminderHours: "24",
@@ -34,9 +64,28 @@ export default function ConfiguracionPage() {
     cancelNotification: true,
   })
 
-  const handleSave = () => {
-    console.log("Saving configuration:", { clinicInfo, schedule, notifications })
-    alert("Configuración guardada correctamente")
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...clinicInfo,
+          scheduleMfOpen: schedule.mondayFriday.open,
+          scheduleMfClose: schedule.mondayFriday.close,
+          scheduleSatOpen: schedule.saturday.open,
+          scheduleSatClose: schedule.saturday.close,
+          scheduleSunClosed: schedule.sundayClosed,
+        }),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: "Configuración guardada", description: "Los cambios se reflejarán en el sitio web" })
+    } catch {
+      toast({ title: "Error", description: "No se pudo guardar la configuración", variant: "destructive" })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -63,6 +112,14 @@ export default function ConfiguracionPage() {
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Notificaciones</span>
+          </TabsTrigger>
+          <TabsTrigger value="servicios" className="gap-2">
+            <Stethoscope className="h-4 w-4" />
+            <span className="hidden sm:inline">Servicios</span>
+          </TabsTrigger>
+          <TabsTrigger value="faq" className="gap-2">
+            <MessageCircleQuestion className="h-4 w-4" />
+            <span className="hidden sm:inline">FAQ</span>
           </TabsTrigger>
         </TabsList>
 
@@ -137,9 +194,11 @@ export default function ConfiguracionPage() {
                 />
               </div>
 
-              <Button onClick={handleSave}>
-                <Save className="mr-2 h-4 w-4" />
-                Guardar Cambios
+              <Button onClick={handleSave} disabled={isSaving || isLoading}>
+                {isSaving
+                  ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  : <Save className="mr-2 h-4 w-4" />}
+                {isSaving ? "Guardando..." : "Guardar Cambios"}
               </Button>
             </CardContent>
           </Card>
@@ -256,6 +315,36 @@ export default function ConfiguracionPage() {
                 <Save className="mr-2 h-4 w-4" />
                 Guardar Cambios
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Servicios Tab */}
+        <TabsContent value="servicios">
+          <Card>
+            <CardHeader>
+              <CardTitle>Servicios</CardTitle>
+              <CardDescription>
+                Administra los servicios que se muestran en el sitio web y en el formulario de citas
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ServiciosTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* FAQ Tab */}
+        <TabsContent value="faq">
+          <Card>
+            <CardHeader>
+              <CardTitle>Preguntas Frecuentes</CardTitle>
+              <CardDescription>
+                Gestiona las preguntas y respuestas que se muestran en el sitio web
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FAQsTab />
             </CardContent>
           </Card>
         </TabsContent>

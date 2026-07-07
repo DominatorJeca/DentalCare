@@ -294,7 +294,7 @@ export default function CitasAdminPage() {
                       mode="range"
                       selected={dateRange}
                       onSelect={setDateRange}
-                      numberOfMonths={2}
+                      numberOfMonths={1}
                       locale={es}
                     />
                   </PopoverContent>
@@ -326,81 +326,37 @@ export default function CitasAdminPage() {
               <p className="text-muted-foreground">Las citas agendadas aparecerán aquí</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {([
-                      { label: "Paciente",  field: "patient_name"      },
-                      { label: "Servicio",  field: "service"            },
-                      { label: "Doctor",    field: "doctor"             },
-                      { label: "Fecha",     field: "appointment_date"   },
-                      { label: "Hora",      field: null                 },
-                      { label: "Estado",    field: "status"             },
-                    ] as { label: string; field: "patient_name" | "service" | "doctor" | "appointment_date" | "status" | null }[]).map(({ label, field }) => {
-                      if (!field) return <TableHead key={label}>{label}</TableHead>
-                      const Icon = sortField !== field ? ArrowUpDown : sortDir === "asc" ? ArrowUp : ArrowDown
-                      return (
-                        <TableHead key={field}>
-                          <button
-                            className="flex items-center gap-1 hover:text-foreground transition-colors select-none"
-                            onClick={() => handleSort(field)}
-                          >
-                            {label}
-                            <Icon className={`h-3.5 w-3.5 ${sortField === field ? "text-foreground" : "text-muted-foreground/50"}`} />
-                          </button>
-                        </TableHead>
-                      )
-                    })}
-                    <TableHead className="w-10" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedAppointments.map((appointment) => (
-                    <TableRow
-                      key={appointment.id}
-                      className={loadingId === appointment.id ? "opacity-50 pointer-events-none" : ""}
-                    >
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{appointment.patient_name}</p>
-                          <p className="text-xs text-muted-foreground">{appointment.patient_email}</p>
-                          <p className="text-xs text-muted-foreground">{appointment.patient_phone}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{appointment.service}</TableCell>
-                      <TableCell>{appointment.doctor}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3 text-muted-foreground" />
-                          {new Date(`${appointment.appointment_date}T12:00:00`).toLocaleDateString("es-ES")}
-                        </div>
-                      </TableCell>
-                      <TableCell>{appointment.appointment_time}</TableCell>
-                      <TableCell>
+            <>
+              {/* Mobile: tarjetas */}
+              <div className="sm:hidden space-y-3">
+                {paginatedAppointments.map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    className={`rounded-lg border border-border bg-background p-4${loadingId === appointment.id ? " opacity-50 pointer-events-none" : ""}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium leading-tight">{appointment.patient_name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{appointment.patient_email}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
                         <Badge variant={statusConfig[appointment.status]?.variant ?? "secondary"}>
                           {statusConfig[appointment.status]?.label ?? appointment.status}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={loadingId === appointment.id}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={loadingId === appointment.id}>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {appointment.status === "pendiente" && (
-                              <DropdownMenuItem
-                                onClick={() => updateStatus(appointment.id, "confirmada")}
-                              >
+                              <DropdownMenuItem onClick={() => updateStatus(appointment.id, "confirmada")}>
                                 Confirmar cita
                               </DropdownMenuItem>
                             )}
                             {appointment.status === "confirmada" && (
-                              <DropdownMenuItem
-                                onClick={() => updateStatus(appointment.id, "completada")}
-                              >
+                              <DropdownMenuItem onClick={() => updateStatus(appointment.id, "completada")}>
                                 Marcar como completada
                               </DropdownMenuItem>
                             )}
@@ -419,66 +375,202 @@ export default function CitasAdminPage() {
                               </>
                             )}
                             {(appointment.status === "completada" || appointment.status === "cancelada") && (
-                              <DropdownMenuItem disabled>
-                                Sin acciones disponibles
-                              </DropdownMenuItem>
+                              <DropdownMenuItem disabled>Sin acciones disponibles</DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
                         </DropdownMenu>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      <span>{appointment.service}</span>
+                      <span className="mx-1.5">·</span>
+                      <span>{appointment.doctor}</span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                      <Calendar className="h-3 w-3 shrink-0" />
+                      <span>{new Date(`${appointment.appointment_date}T12:00:00`).toLocaleDateString("es-ES")}</span>
+                      <span className="mx-0.5">·</span>
+                      <span>{appointment.appointment_time}</span>
+                    </div>
+                  </div>
+                ))}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-2">
+                    <p className="text-xs text-muted-foreground">
+                      {Math.min((currentPage - 1) * PAGE_SIZE + 1, filteredAppointments.length)}–{Math.min(currentPage * PAGE_SIZE, filteredAppointments.length)} de {filteredAppointments.length}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </Button>
+                      {getPageNumbers().map((page, i) =>
+                        page === "ellipsis" ? (
+                          <span key={`e-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                        ) : (
+                          <Button key={page} variant={currentPage === page ? "default" : "outline"} size="icon" className="h-7 w-7 text-xs" onClick={() => setCurrentPage(page)}>
+                            {page}
+                          </Button>
+                        )
+                      )}
+                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop: tabla */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {([
+                        { label: "Paciente",  field: "patient_name"      },
+                        { label: "Servicio",  field: "service"            },
+                        { label: "Doctor",    field: "doctor"             },
+                        { label: "Fecha",     field: "appointment_date"   },
+                        { label: "Hora",      field: null                 },
+                        { label: "Estado",    field: "status"             },
+                      ] as { label: string; field: "patient_name" | "service" | "doctor" | "appointment_date" | "status" | null }[]).map(({ label, field }) => {
+                        if (!field) return <TableHead key={label}>{label}</TableHead>
+                        const Icon = sortField !== field ? ArrowUpDown : sortDir === "asc" ? ArrowUp : ArrowDown
+                        return (
+                          <TableHead key={field}>
+                            <button
+                              className="flex items-center gap-1 hover:text-foreground transition-colors select-none"
+                              onClick={() => handleSort(field)}
+                            >
+                              {label}
+                              <Icon className={`h-3.5 w-3.5 ${sortField === field ? "text-foreground" : "text-muted-foreground/50"}`} />
+                            </button>
+                          </TableHead>
+                        )
+                      })}
+                      <TableHead className="w-10" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedAppointments.map((appointment) => (
+                      <TableRow
+                        key={appointment.id}
+                        className={loadingId === appointment.id ? "opacity-50 pointer-events-none" : ""}
+                      >
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{appointment.patient_name}</p>
+                            <p className="text-xs text-muted-foreground">{appointment.patient_email}</p>
+                            <p className="text-xs text-muted-foreground">{appointment.patient_phone}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>{appointment.service}</TableCell>
+                        <TableCell>{appointment.doctor}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            {new Date(`${appointment.appointment_date}T12:00:00`).toLocaleDateString("es-ES")}
+                          </div>
+                        </TableCell>
+                        <TableCell>{appointment.appointment_time}</TableCell>
+                        <TableCell>
+                          <Badge variant={statusConfig[appointment.status]?.variant ?? "secondary"}>
+                            {statusConfig[appointment.status]?.label ?? appointment.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" disabled={loadingId === appointment.id}>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {appointment.status === "pendiente" && (
+                                <DropdownMenuItem onClick={() => updateStatus(appointment.id, "confirmada")}>
+                                  Confirmar cita
+                                </DropdownMenuItem>
+                              )}
+                              {appointment.status === "confirmada" && (
+                                <DropdownMenuItem onClick={() => updateStatus(appointment.id, "completada")}>
+                                  Marcar como completada
+                                </DropdownMenuItem>
+                              )}
+                              {(appointment.status === "pendiente" || appointment.status === "confirmada") && (
+                                <>
+                                  <DropdownMenuItem onClick={() => setRescheduleTarget(appointment)}>
+                                    Reprogramar cita
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => updateStatus(appointment.id, "cancelada")}
+                                  >
+                                    Cancelar cita
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {(appointment.status === "completada" || appointment.status === "cancelada") && (
+                                <DropdownMenuItem disabled>
+                                  Sin acciones disponibles
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter>
+                    <TableRow>
+                      <TableCell colSpan={7}>
+                        <div className="flex items-center justify-between py-1">
+                          <p className="text-xs text-muted-foreground">
+                            Mostrando {Math.min((currentPage - 1) * PAGE_SIZE + 1, filteredAppointments.length)}–{Math.min(currentPage * PAGE_SIZE, filteredAppointments.length)} de {filteredAppointments.length}
+                          </p>
+                          {totalPages > 1 && (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                              >
+                                <ChevronLeft className="h-3.5 w-3.5" />
+                              </Button>
+                              {getPageNumbers().map((page, i) =>
+                                page === "ellipsis" ? (
+                                  <span key={`e-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                                ) : (
+                                  <Button
+                                    key={page}
+                                    variant={currentPage === page ? "default" : "outline"}
+                                    size="icon"
+                                    className="h-7 w-7 text-xs"
+                                    onClick={() => setCurrentPage(page)}
+                                  >
+                                    {page}
+                                  </Button>
+                                )
+                              )}
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                              >
+                                <ChevronRight className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-                <TableFooter>
-                  <TableRow>
-                    <TableCell colSpan={7}>
-                      <div className="flex items-center justify-between py-1">
-                        <p className="text-xs text-muted-foreground">
-                          Mostrando {Math.min((currentPage - 1) * PAGE_SIZE + 1, filteredAppointments.length)}–{Math.min(currentPage * PAGE_SIZE, filteredAppointments.length)} de {filteredAppointments.length}
-                        </p>
-                        {totalPages > 1 && (
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                              disabled={currentPage === 1}
-                            >
-                              <ChevronLeft className="h-3.5 w-3.5" />
-                            </Button>
-                            {getPageNumbers().map((page, i) =>
-                              page === "ellipsis" ? (
-                                <span key={`e-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
-                              ) : (
-                                <Button
-                                  key={page}
-                                  variant={currentPage === page ? "default" : "outline"}
-                                  size="icon"
-                                  className="h-7 w-7 text-xs"
-                                  onClick={() => setCurrentPage(page)}
-                                >
-                                  {page}
-                                </Button>
-                              )
-                            )}
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                              disabled={currentPage === totalPages}
-                            >
-                              <ChevronRight className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                </TableFooter>
-              </Table>
-            </div>
+                  </TableFooter>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

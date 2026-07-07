@@ -8,7 +8,18 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Phone, Mail, MapPin, Clock, Send } from "lucide-react"
 
-export function Contact() {
+interface ClinicInfo {
+  phone: string
+  email: string
+  address: string
+  scheduleMfOpen: string
+  scheduleMfClose: string
+  scheduleSatOpen: string
+  scheduleSatClose: string
+  scheduleSunClosed: boolean
+}
+
+export function Contact({ clinicInfo }: { clinicInfo: ClinicInfo }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -45,25 +56,25 @@ export function Contact() {
     {
       icon: Phone,
       title: "Teléfono",
-      content: "+1 (234) 567-890",
-      href: "tel:+1234567890",
+      content: clinicInfo.phone,
+      href: `https://wa.me/${clinicInfo.phone.replace(/\D/g, "")}`,
     },
     {
       icon: Mail,
       title: "Email",
-      content: "info@dentacare.com",
-      href: "mailto:info@dentacare.com",
+      content: clinicInfo.email,
+      href: `mailto:${clinicInfo.email}`,
     },
     {
       icon: MapPin,
       title: "Dirección",
-      content: "Av. Principal 123, Ciudad",
+      content: clinicInfo.address,
       href: "#",
     },
     {
       icon: Clock,
       title: "Horario",
-      content: "Lun-Vie: 9:00-19:00",
+      content: `Lun-Vie: ${clinicInfo.scheduleMfOpen}-${clinicInfo.scheduleMfClose}`,
       href: "#",
     },
   ]
@@ -99,6 +110,8 @@ export function Contact() {
                     {info.href !== "#" ? (
                       <a
                         href={info.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="text-sm text-muted-foreground transition-colors hover:text-primary"
                       >
                         {info.content}

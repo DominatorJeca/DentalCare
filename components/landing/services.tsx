@@ -1,52 +1,30 @@
+import Link from "next/link"
+import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Sparkles, Shield, Stethoscope, Smile, HeartPulse, Zap } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  Sparkles, Shield, Stethoscope, Smile, HeartPulse, Zap,
+  Anchor, Sun, Star, Activity, AlertTriangle, Search, Scissors,
+  Clock,
+  type LucideIcon,
+} from "lucide-react"
 
-const services = [
-  {
-    icon: Sparkles,
-    title: "Limpieza Dental",
-    description:
-      "Limpieza profunda profesional para eliminar sarro y placa bacteriana, manteniendo tu sonrisa brillante.",
-    price: "Desde $50",
-  },
-  {
-    icon: Shield,
-    title: "Ortodoncia",
-    description:
-      "Corrección dental con brackets tradicionales o alineadores invisibles para una sonrisa perfecta.",
-    price: "Desde $1,500",
-  },
-  {
-    icon: Stethoscope,
-    title: "Implantes Dentales",
-    description:
-      "Reemplazo de piezas dentales con implantes de titanio de alta calidad y apariencia natural.",
-    price: "Desde $800",
-  },
-  {
-    icon: Smile,
-    title: "Blanqueamiento",
-    description:
-      "Tratamiento profesional para devolver el blanco natural a tus dientes de forma segura.",
-    price: "Desde $200",
-  },
-  {
-    icon: HeartPulse,
-    title: "Endodoncia",
-    description:
-      "Tratamiento de conductos para salvar piezas dentales dañadas y eliminar infecciones.",
-    price: "Desde $300",
-  },
-  {
-    icon: Zap,
-    title: "Urgencias Dentales",
-    description:
-      "Atención inmediata para emergencias dentales con disponibilidad extendida.",
-    price: "Consultar",
-  },
-]
+const ICON_MAP: Record<string, LucideIcon> = {
+  Sparkles, Shield, Stethoscope, Smile, HeartPulse, Zap,
+  Anchor, Sun, Star, Activity, AlertTriangle, Search, Scissors,
+}
 
-export function Services() {
+export async function Services() {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("services")
+    .select("id, name, description, icon, price, duration_minutes")
+    .order("name")
+
+  const services = data ?? []
+
+  if (services.length === 0) return null
+
   return (
     <section id="servicios" className="bg-background py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -64,27 +42,53 @@ export function Services() {
         </div>
 
         <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((service) => (
-            <Card
-              key={service.title}
-              className="group relative overflow-hidden transition-all hover:shadow-lg"
-            >
-              <CardHeader>
-                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/20">
-                  <service.icon className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl">{service.title}</CardTitle>
-                <CardDescription className="text-base">
-                  {service.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-lg font-semibold text-primary">
-                  {service.price}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
+          {services.map((service) => {
+            const Icon = ICON_MAP[service.icon ?? ""] ?? Stethoscope
+            return (
+              <Card
+                key={service.id}
+                className="group relative overflow-hidden transition-all hover:shadow-lg"
+              >
+                <CardHeader>
+                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/20">
+                    <Icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle className="text-xl">{service.name}</CardTitle>
+                  {service.description && (
+                    <CardDescription className="text-base">
+                      {service.description}
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-1.5">
+                    {service.price && (
+                      <p className="text-sm text-muted-foreground">
+                        Precio:{" "}
+                        <span className="font-semibold text-primary">
+                          {service.price} LPS
+                        </span>
+                      </p>
+                    )}
+                    {service.duration_minutes && (
+                      <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" />
+                        Duración aprox:{" "}
+                        <span className="font-medium text-foreground">
+                          {service.duration_minutes} min
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                  <Button asChild variant="outline" size="sm" className="w-full">
+                    <Link href={`/citas?service=${service.id}`}>
+                      Reservar cita
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       </div>
     </section>

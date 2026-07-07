@@ -39,7 +39,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     supabase
       .from("appointments")
       .select("patient_email, patient_name, appointment_date, status, created_at")
-      .order("created_at", { ascending: false }),
+      .order("appointment_date", { ascending: false }),
   ])
 
   const todayRaw = (todayResult.data as unknown ?? []) as RawAppointment[]
