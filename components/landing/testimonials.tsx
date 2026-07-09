@@ -1,34 +1,25 @@
+import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel"
 import { Star } from "lucide-react"
+import { TestimonialForm } from "@/components/landing/testimonial-form"
 
-const testimonials = [
-  {
-    name: "Patricia López",
-    treatment: "Blanqueamiento",
-    rating: 5,
-    text: "Excelente atención desde el primer momento. El blanqueamiento superó mis expectativas y el equipo fue muy profesional.",
-  },
-  {
-    name: "Roberto Sánchez",
-    treatment: "Implantes",
-    rating: 5,
-    text: "Tenía mucho miedo al procedimiento de implantes, pero el Dr. Rodríguez me hizo sentir muy seguro. El resultado es increíble.",
-  },
-  {
-    name: "Carmen Díaz",
-    treatment: "Ortodoncia",
-    rating: 5,
-    text: "Mi tratamiento de ortodoncia con la Dra. García ha sido transformador. Muy recomendado para quienes buscan calidad.",
-  },
-  {
-    name: "Miguel Torres",
-    treatment: "Limpieza Dental",
-    rating: 5,
-    text: "Llevo años viniendo a DentaCare para mis limpiezas. El servicio siempre es impecable y el ambiente muy agradable.",
-  },
-]
+export async function Testimonials() {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("testimonials")
+    .select("id, name, treatment, rating, text")
+    .eq("status", "approved")
+    .order("created_at", { ascending: false })
 
-export function Testimonials() {
+  const testimonials = data ?? []
+
   return (
     <section id="testimonios" className="bg-background py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -45,30 +36,43 @@ export function Testimonials() {
           </p>
         </div>
 
-        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {testimonials.map((testimonial, index) => (
-            <Card key={index} className="transition-all hover:shadow-lg">
-              <CardContent className="p-6">
-                <div className="mb-4 flex gap-1">
-                  {Array.from({ length: testimonial.rating }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className="h-4 w-4 fill-primary text-primary"
-                    />
-                  ))}
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  &quot;{testimonial.text}&quot;
-                </p>
-                <div className="mt-4 border-t border-border pt-4">
-                  <p className="font-semibold text-foreground">
-                    {testimonial.name}
-                  </p>
-                  <p className="text-sm text-primary">{testimonial.treatment}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        {testimonials.length > 0 ? (
+          <Carousel opts={{ align: "start", loop: true }} className="mt-16 px-8 sm:px-12">
+            <CarouselContent>
+              {testimonials.map((testimonial) => (
+                <CarouselItem key={testimonial.id} className="sm:basis-1/2 lg:basis-1/3">
+                  <Card className="h-full transition-all hover:shadow-lg">
+                    <CardContent className="flex h-full flex-col p-6">
+                      <div className="mb-4 flex gap-1">
+                        {Array.from({ length: testimonial.rating }).map((_, i) => (
+                          <Star key={i} className="h-4 w-4 fill-primary text-primary" />
+                        ))}
+                      </div>
+                      <p className="flex-1 text-sm leading-relaxed text-muted-foreground">
+                        &quot;{testimonial.text}&quot;
+                      </p>
+                      <div className="mt-4 border-t border-border pt-4">
+                        <p className="font-semibold text-foreground">
+                          {testimonial.name}
+                        </p>
+                        <p className="text-sm text-primary">{testimonial.treatment}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
+        ) : (
+          <p className="mt-16 text-center text-sm text-muted-foreground">
+            Sé el primero en compartir tu experiencia.
+          </p>
+        )}
+
+        <div className="mt-10 flex justify-center">
+          <TestimonialForm />
         </div>
       </div>
     </section>

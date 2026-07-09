@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Building2, Clock, Bell, Save, RefreshCw, Stethoscope, MessageCircleQuestion } from "lucide-react"
+import { Building2, Clock, Bell, Save, RefreshCw, Stethoscope, MessageCircleQuestion, Star } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ServiciosTab } from "@/components/admin/servicios-tab"
 import { FAQsTab } from "@/components/admin/faqs-tab"
+import { TestimoniosTab } from "@/components/admin/testimonios-tab"
 
 export default function ConfiguracionPage() {
   const { toast } = useToast()
@@ -120,6 +121,10 @@ export default function ConfiguracionPage() {
           <TabsTrigger value="faq" className="gap-2">
             <MessageCircleQuestion className="h-4 w-4" />
             <span className="hidden sm:inline">FAQ</span>
+          </TabsTrigger>
+          <TabsTrigger value="testimonios" className="gap-2">
+            <Star className="h-4 w-4" />
+            <span className="hidden sm:inline">Testimonios</span>
           </TabsTrigger>
         </TabsList>
 
@@ -345,6 +350,21 @@ export default function ConfiguracionPage() {
             </CardHeader>
             <CardContent>
               <FAQsTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Testimonios Tab */}
+        <TabsContent value="testimonios">
+          <Card>
+            <CardHeader>
+              <CardTitle>Testimonios</CardTitle>
+              <CardDescription>
+                Revisa, aprueba o rechaza los testimonios enviados por pacientes desde el sitio web
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TestimoniosTab />
             </CardContent>
           </Card>
         </TabsContent>
