@@ -18,7 +18,9 @@
       "Bash(Select-Object Name)",
       "WebFetch(domain:cdn.prod.website-files.com)",
       "PowerShell(Get-ChildItem -Path \"D:\\\\Proyectos Personales\\\\DentalCare\\\\DentalCare\" -Recurse -Exclude \"node_modules\" -File | Select-Object FullName | ForEach-Object { $_.FullName -replace [regex]::Escape\\(\"D:\\\\Proyectos Personales\\\\DentalCare\\\\DentalCare\"\\), \".\" } | Sort-Object)",
-      "Bash(grep -v \"^\\\\.\\\\.$\")"
+      "Bash(grep -v \"^\\\\.\\\\.$\")",
+      "Bash(node -e ' *)",
+      "Bash(node \"C:\\\\Users\\\\Javi\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Proyectos-Personales-DentalCare-DentalCare\\\\01ba6749-aee1-4a35-bfa6-ea3edeea2d5c\\\\scratchpad\\\\create-admin.cjs\")"
     ]
   }
 }

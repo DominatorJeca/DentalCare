@@ -4,8 +4,8 @@ import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Menu, X, Phone } from "lucide-react"
-import { DEFAULTS } from "@/lib/settings"
-import type { ClinicSettings } from "@/lib/settings"
+import { DEFAULTS } from "@/types/settings"
+import type { ClinicSettings } from "@/types/settings"
 
 export function Header({ clinicSettings = DEFAULTS }: { clinicSettings?: ClinicSettings }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
